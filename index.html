@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>דשבורד סקרים - כנסת ישראל</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#090d19;--card:#111827;--card2:#1a2235;--card3:#1e293b;--border:#1e2d4a;--border2:#2d3f5e;--text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;--accent:#3b82f6;--accent2:#8b5cf6;--green:#10b981;--red:#ef4444;--orange:#f59e0b;--cyan:#06b6d4}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+.hdr{background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 50%,#0f172a 100%);padding:24px 28px 18px;border-bottom:1px solid var(--border);position:relative;overflow:hidden}
+.hdr::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 30% 50%,rgba(59,130,246,.08) 0%,transparent 60%),radial-gradient(ellipse at 70% 50%,rgba(139,92,246,.06) 0%,transparent 60%)}
+.hdr-in{position:relative;z-index:1;max-width:1600px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.hdr h1{font-family:'Rubik',sans-serif;font-size:1.8rem;font-weight:700;background:linear-gradient(135deg,#fff 0%,#93c5fd 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hdr .sub{color:var(--text2);font-size:.85rem;font-weight:300;margin-top:2px}
+.hdr .meta{color:var(--text3);font-size:.78rem;text-align:left;direction:ltr}
+.tabs{display:flex;gap:3px;margin-bottom:18px;background:var(--card);border-radius:12px;padding:3px;border:1px solid var(--border);overflow-x:auto}
+.tab{padding:9px 18px;border-radius:9px;cursor:pointer;font-family:'Heebo';font-size:.85rem;font-weight:500;color:var(--text2);transition:all .2s;border:none;background:none;white-space:nowrap}
+.tab:hover{color:var(--text);background:rgba(255,255,255,.04)}
+.tab.on{background:var(--accent);color:#fff}
+.tab.hist{background:none;border:1px solid var(--border2);color:var(--text3)}
+.tab.hist:hover{border-color:var(--orange);color:var(--orange)}
+.tab.hist.on{background:rgba(245,158,11,.15);border-color:var(--orange);color:var(--orange)}
+.wrap{max-width:1600px;margin:0 auto;padding:16px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.g5{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+@media(max-width:1000px){.g2,.g3,.g4,.g5{grid-template-columns:1fr 1fr}.tabs{flex-wrap:wrap}}
+@media(max-width:600px){.g2,.g3,.g4,.g5{grid-template-columns:1fr}}
+.cd{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:14px}
+.cd-t{font-family:'Rubik';font-size:1.05rem;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.cd-t .ic{font-size:1.15rem}
+.kpi{background:var(--card2);border:1px solid var(--border);border-radius:11px;padding:14px 10px;text-align:center;transition:transform .2s}
+.kpi:hover{transform:translateY(-2px)}
+.kpi .v{font-size:1.9rem;font-weight:700;line-height:1.2}
+.kpi .l{font-size:.75rem;color:var(--text2);margin-top:3px}
+.kpi .d{font-size:.7rem;margin-top:2px;font-weight:600}
+.kpi .d.up{color:var(--green)}.kpi .d.dn{color:var(--red)}
+.pb{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;margin-bottom:4px;background:var(--card2);transition:background .15s}
+.pb:hover{background:var(--card3)}
+.pb .nm{width:110px;font-size:.82rem;font-weight:500;text-align:right;flex-shrink:0}
+.pb .st{font-size:.85rem;font-weight:700;width:32px;text-align:center;flex-shrink:0}
+.pb .br{flex:1;height:22px;background:rgba(255,255,255,.04);border-radius:5px;overflow:hidden}
+.pb .fl{height:100%;border-radius:5px;transition:width .7s ease}
+.pb .ch{font-size:.72rem;width:52px;text-align:center;font-weight:600;flex-shrink:0}
+.pb .ch.up{color:var(--green)}.pb .ch.dn{color:var(--red)}.pb .ch.nt{color:var(--text3)}
+.cm{display:flex;align-items:center;gap:14px;padding:14px;background:var(--card2);border-radius:11px;margin-bottom:12px}
+.cm .val{font-size:1.6rem;font-weight:800;min-width:48px;text-align:center}
+.cm .bar{flex:1;height:30px;background:rgba(255,255,255,.04);border-radius:15px;position:relative;overflow:hidden}
+.cm .fill{height:100%;border-radius:15px;transition:width .8s ease}
+.cm .tgt{position:absolute;top:-2px;bottom:-2px;width:2px;background:#fff;z-index:2}
+.cm .tgt span{position:absolute;top:-16px;font-size:.68rem;color:var(--text2);transform:translateX(-50%);white-space:nowrap}
+.cm .tag{font-size:.82rem;min-width:70px;text-align:center;font-weight:600}
+.cc{position:relative;width:100%}
+.cc.h4{height:400px}.cc.h3{height:320px}.cc.h25{height:260px}
+.flt{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.fb{padding:5px 13px;border-radius:18px;font-size:.78rem;border:1px solid var(--border);background:var(--card2);color:var(--text2);cursor:pointer;font-family:'Heebo';transition:all .2s}
+.fb:hover{border-color:var(--accent);color:var(--text)}
+.fb.on{color:#fff;border-color:transparent}
+.ptbl{width:100%;border-collapse:collapse;font-size:.78rem}
+.ptbl th{padding:7px 5px;text-align:center;background:var(--card2);color:var(--text2);font-weight:600;position:sticky;top:0;z-index:1}
+.ptbl td{padding:5px;text-align:center;border-bottom:1px solid rgba(30,45,74,.5)}
+.ptbl tr:hover td{background:rgba(255,255,255,.02)}
+.tscr{max-height:520px;overflow-y:auto;border-radius:8px}
+select{background:var(--card2);color:var(--text);border:1px solid var(--border);padding:5px 10px;border-radius:7px;font-family:'Heebo';font-size:.82rem;cursor:pointer}
+.sec{display:none}.sec.on{display:block}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--card)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.ai{animation:fi .35s ease forwards}
+.ev-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.ev-tag{font-size:.72rem;padding:3px 9px;border-radius:12px;background:rgba(59,130,246,.12);color:#60a5fa;border:1px solid rgba(59,130,246,.2)}
+.hist-badge{display:inline-block;font-size:.68rem;padding:2px 8px;border-radius:10px;background:rgba(245,158,11,.15);color:var(--orange);border:1px solid rgba(245,158,11,.3);margin-right:6px}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-in">
+    <div>
+      <h1>📊 דשבורד סקרים — כנסת ישראל</h1>
+      <div class="sub">תרחיש עם מפלגה בראשות בנט | <span id="last-date"></span></div>
+    </div>
+    <div class="meta" id="hdr-meta"></div>
+  </div>
+</div>
+
+<div class="wrap">
+  <!-- Joined list filter -->
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:10px 14px;background:var(--card);border:1px solid var(--border);border-radius:10px;flex-wrap:wrap">
+    <span style="font-size:.82rem;color:var(--text2)">🗳️ הרשימה המשותפת (חד״ש-תע״ל + רע״מ):</span>
+    <select id="joined-filter" onchange="onJoinedChange()" style="font-size:.82rem">
+      <option value="all">כל הסקרים</option>
+      <option value="joined">רק סקרים עם רשימה משותפת</option>
+      <option value="separate">רק סקרים עם מפלגות נפרדות</option>
+    </select>
+    <span style="font-size:.72rem;color:var(--text3)">מ-28/01/2026 חלק מהסוקרים שואלים על רשימה משותפת</span>
+  </div>
+  <div class="tabs" id="tabs">
+    <button class="tab on" data-s="overview">סקירה כללית</button>
+    <button class="tab" data-s="trends">מגמות</button>
+    <button class="tab" data-s="coalition">גוש מול גוש</button>
+    <button class="tab" data-s="pollsters">סוקרים</button>
+    <button class="tab" data-s="compare">עם/ללא בנט</button>
+    <button class="tab" data-s="events">אירועים</button>
+    <button class="tab" data-s="table">טבלת סקרים</button>
+    <button class="tab hist" data-s="historical">📜 תקופה ללא בנט</button>
+  </div>
+
+  <!-- SEC 1: OVERVIEW -->
+  <div id="overview" class="sec on">
+    <div class="g5" id="kpi-row"></div>
+    <div class="g2" style="margin-top:14px">
+      <div class="cd"><div class="cd-t"><span class="ic">🏛️</span>מנדטים — ממוצע 10 סקרים אחרונים</div><div id="ov-bars"></div></div>
+      <div class="cd"><div class="cd-t"><span class="ic">🥧</span>חלוקת מנדטים</div><div class="cc h4"><canvas id="ch-pie"></canvas></div></div>
+    </div>
+    <div class="cd"><div class="cd-t"><span class="ic">⚖️</span>מד קואליציה</div><div id="ov-meter"></div></div>
+    <div class="cd"><div class="cd-t"><span class="ic">📈</span>מגמות 3 חודשים אחרונים</div><div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap"><label style="font-size:.82rem;color:var(--text2)">סוקר:</label><select id="ov-pollster" onchange="renderOverviewTrend()" style="font-size:.82rem"><option value="all">כל הסוקרים</option></select></div><div class="cc h4"><canvas id="ch-recent"></canvas></div></div>
+  </div>
+
+  <!-- SEC 2: TRENDS -->
+  <div id="trends" class="sec">
+    <div class="cd"><div class="cd-t"><span class="ic">📈</span>מגמות מנדטים לאורך זמן</div><div class="flt" id="trend-flt"></div><div class="cc h4"><canvas id="ch-trend"></canvas></div></div>
+    <div class="g2">
+      <div class="cd"><div class="cd-t"><span class="ic">🔥</span>תנודתיות — שינויים גדולים ליכוד</div><div class="cc h25"><canvas id="ch-vol"></canvas></div></div>
+      <div class="cd"><div class="cd-t"><span class="ic">📊</span>ממוצע נע — 10 סקרים</div><div class="cc h25"><canvas id="ch-ma"></canvas></div></div>
+    </div>
+  </div>
+
+  <!-- SEC 3: COALITION -->
+  <div id="coalition" class="sec">
+    <div class="cd"><div class="cd-t"><span class="ic">⚔️</span>קואליציה מול אופוזיציה לאורך זמן</div><div class="cc h4"><canvas id="ch-coal"></canvas></div></div>
+    <div class="g2">
+      <div class="cd"><div class="cd-t"><span class="ic">🔵</span>הרכב הקואליציה</div><div id="coal-bars"></div><div id="coal-total" style="margin-top:10px;text-align:center"></div></div>
+      <div class="cd"><div class="cd-t"><span class="ic">🔴</span>הרכב האופוזיציה</div><div id="opp-bars"></div><div id="opp-total" style="margin-top:10px;text-align:center"></div></div>
+    </div>
+    <div class="cd"><div class="cd-t"><span class="ic">🍩</span>חלוקה לפי גוש</div><div class="g2"><div class="cc h3"><canvas id="ch-coal-pie1"></canvas></div><div class="cc h3"><canvas id="ch-coal-pie2"></canvas></div></div></div>
+  </div>
+
+  <!-- SEC 4: POLLSTERS -->
+  <div id="pollsters" class="sec">
+    <div class="cd"><div class="cd-t"><span class="ic">📊</span>ממוצע ליכוד לפי סוקר</div><div class="cc h4"><canvas id="ch-polst"></canvas></div></div>
+    <div class="g2">
+      <div class="cd"><div class="cd-t"><span class="ic">📰</span>כמות סקרים לפי מקור</div><div class="cc h3"><canvas id="ch-src"></canvas></div></div>
+      <div class="cd"><div class="cd-t"><span class="ic">📅</span>כמות סקרים לפי חודש</div><div class="cc h3"><canvas id="ch-mon"></canvas></div></div>
+    </div>
+    <div class="cd"><div class="cd-t"><span class="ic">🎯</span>הטיה לפי סוקר</div><div class="cc h3"><canvas id="ch-bias"></canvas></div></div>
+  </div>
+
+  <!-- SEC 5: COMPARE -->
+  <div id="compare" class="sec">
+    <div class="cd"><div class="cd-t"><span class="ic">🔄</span>השוואה: עם בנט מול ללא</div><div class="cc h4"><canvas id="ch-cmp"></canvas></div></div>
+    <div class="cd"><div class="cd-t"><span class="ic">📊</span>הפרש מנדטים — מי מרוויח ומי מפסיד כשבנט רץ</div><div class="cc h3"><canvas id="ch-cmp-diff"></canvas></div></div>
+  </div>
+
+  <!-- SEC 6: EVENTS -->
+  <div id="events" class="sec">
+    <div class="cd"><div class="cd-t"><span class="ic">📌</span>אירועים מרכזיים והשפעתם</div><div class="cc" style="height:480px"><canvas id="ch-ev"></canvas></div><div class="ev-list" id="ev-list"></div></div>
+    <div class="cd"><div class="cd-t"><span class="ic">📊</span>קואליציה לפני ואחרי</div><div class="cc h3"><canvas id="ch-ev-impact"></canvas></div></div>
+  </div>
+
+  <!-- SEC 7: TABLE -->
+  <div id="table" class="sec">
+    <div class="cd">
+      <div class="cd-t"><span class="ic">📋</span>כל הסקרים</div>
+      <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap">
+        <label style="font-size:.82rem;color:var(--text2)">מערך:</label>
+        <select id="tbl-ds" onchange="renderTbl()"><option value="bennet">עם בנט</option><option value="main">ללא בנט</option></select>
+        <label style="font-size:.82rem;color:var(--text2)">מקור:</label>
+        <select id="tbl-src" onchange="renderTbl()"><option value="all">הכל</option></select>
+        <label style="font-size:.82rem;color:var(--text2)">סוקר:</label>
+        <select id="tbl-pol" onchange="renderTbl()"><option value="all">הכל</option></select>
+        <label style="font-size:.82rem;color:var(--text2)">מיון:</label>
+        <select id="tbl-sort" onchange="renderTbl()"><option value="desc">חדש→ישן</option><option value="asc">ישן→חדש</option></select>
+        <span id="tbl-count" style="font-size:.78rem;color:var(--text3);margin-right:auto"></span>
+      </div>
+      <div class="tscr" id="tbl-box"></div>
+    </div>
+  </div>
+
+  <!-- SEC 8: HISTORICAL (Without Bennett) -->
+  <div id="historical" class="sec">
+    <div class="cd" style="border-color:rgba(245,158,11,.3);background:linear-gradient(135deg,var(--card) 0%,#1a1a2e 100%)">
+      <div class="cd-t"><span class="ic">📜</span><span class="hist-badge">ארכיון</span>תקופה ללא מפלגה בראשות בנט</div>
+      <p style="color:var(--text2);font-size:.85rem;margin-bottom:14px">נתונים מ-12/2022 עד 07/2025 — 319 סקרים לפני כניסת בנט לזירה הפוליטית</p>
+      <div class="g4" id="hist-kpi"></div>
+    </div>
+    <div class="cd"><div class="cd-t"><span class="ic">🏛️</span>מנדטים — ממוצע 10 סקרים אחרונים (ללא בנט)</div><div id="hist-bars"></div></div>
+    <div class="cd"><div class="cd-t"><span class="ic">📈</span>מגמות — כל התקופה ללא בנט</div><div class="flt" id="hist-flt"></div><div class="cc h4"><canvas id="ch-hist-trend"></canvas></div></div>
+    <div class="g2">
+      <div class="cd"><div class="cd-t"><span class="ic">⚔️</span>קואליציה מול אופוזיציה</div><div class="cc h3"><canvas id="ch-hist-coal"></canvas></div></div>
+      <div class="cd"><div class="cd-t"><span class="ic">🥧</span>חלוקת מנדטים</div><div class="cc h3"><canvas id="ch-hist-pie"></canvas></div></div>
+    </div>
+  </div>
+
+</div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
