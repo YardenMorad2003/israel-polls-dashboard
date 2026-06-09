@@ -336,7 +336,8 @@ overwrites `data.js`. Nothing else needs rebuilding — reload `index.html`.
 ## Tech stack
 
 - **Front-end:** vanilla HTML / CSS / JavaScript — no framework, no bundler, no dependencies to install.
-  Dark theme, responsive (stacks below 1080 px).
+  Dark theme, responsive (stacks below 1080 px; dedicated phone layout below 640 px — on touch
+  screens the chart pans by drag and zooms via the slider, so the page itself stays scrollable).
 - **Charts:** Apache **ECharts 5.6.0**, vendored locally, SVG renderer (avoids a canvas-clearing
   glitch on some GPU/driver combos that left ghost frames behind on repaints).
 - **Data build:** Python 3 + **pandas**.

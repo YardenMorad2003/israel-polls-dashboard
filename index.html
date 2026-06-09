@@ -138,7 +138,11 @@
   /* main */
   .main{display:grid;grid-template-columns:1fr 340px;gap:16px}
   .chart-card{padding:8px 8px 4px}
-  #chart{width:100%;height:560px}
+  /* pan-y: on touch screens a vertical swipe over the chart scrolls the PAGE; horizontal drags
+     still pan the chart, and zooming is done with the slider (a trapped chart you can't scroll
+     past is worse than losing pinch-zoom) */
+  #chart{width:100%;height:560px;touch-action:pan-y}
+  #chart div{touch-action:pan-y}
   .events-card{padding:0;display:flex;flex-direction:column;max-height:620px}
   .events-card .eh{padding:14px 16px 10px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:baseline}
   .events-card .eh b{font-size:14px}
@@ -164,6 +168,39 @@
   .accnote i{color:#aebccd;font-style:normal;font-weight:600}
   @media(max-width:1080px){.main{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}#chart{height:460px}
     .events-card{max-height:380px}}
+
+  /* phones */
+  @media(max-width:640px){
+    .wrap{padding:14px 12px 44px}
+    h1{font-size:19px}
+    .sub{font-size:12px}
+    .header{margin-bottom:12px;align-items:flex-start}
+    .brandmark{text-align:left;font-size:10.5px}
+    .modebar{display:flex;width:100%;padding:3px}
+    .mtab{flex:1;padding:8px 4px;font-size:12px}
+    .tabs{flex-wrap:nowrap;overflow-x:auto;gap:6px;margin-bottom:12px;padding-bottom:3px}
+    .tab{padding:7px 11px;font-size:12.5px}
+    .tab small{display:none}
+    .kpis{gap:8px;margin-bottom:12px}
+    .kpi{padding:10px 12px}
+    .kpi .v{font-size:19px}
+    .kpis .kpi:nth-child(5){grid-column:1/-1}
+    .toolbar{gap:7px;margin-bottom:10px}
+    .seg{flex-wrap:wrap}
+    .seg button{padding:7px 10px;font-size:11.5px}
+    .btn,.switch{padding:7px 10px;font-size:11.5px}
+    .search{width:100%}
+    .chips{max-height:128px;overflow:auto}
+    #chart{height:380px}
+    .events-card{max-height:300px}
+    .ptbl th,.ptbl td{padding:5px 6px}
+    .ptbl .c0{min-width:52px}
+    /* keep only the date column pinned: two sticky columns leave almost no scroll room on phones */
+    .ptbl td.c1{position:static;min-width:118px}
+    .ptbl th.c1{left:auto;min-width:118px}
+    .menu{width:min(280px,86vw)}
+    .accnote{font-size:11px;line-height:1.6}
+  }
 </style>
 </head>
 <body>
@@ -216,7 +253,7 @@
     </div>
     <label class="switch"><input type="checkbox" id="evToggle" checked> Events</label>
     <button class="btn" id="zoomReset" title="Show the full period">Reset zoom</button>
-    <span class="hint">scroll to zoom · drag to pan</span>
+    <span class="hint" id="zoomHint">scroll to zoom · drag to pan</span>
   </div>
 
   <div class="card chips-card trends-only">
@@ -631,28 +668,36 @@
 
   // shared heatmap option (title clear of rotated headers; legend at the bottom; legible mid-tone)
   function heatmapOption(c){
+    // phone-width container: tighter paddings, truncated + steeper labels, wrapped title, no
+    // subtitle (the toolbar + caveats card carry that context), shorter legend bar
+    var narrow=chart.getWidth()<640;
+    var trunc=function(n){return function(v){return narrow&&v.length>n?v.slice(0,n-1)+"…":v;};};
     var vm = c.diverging
       ? {min:-c.max,max:c.max,inRange:{color:["#3b8fd4","#2b3a4d","#e0743f"]},text:["over","under"]}
       : {min:0,max:c.max,inRange:{color:["#49c06a","#d6c84a","#e2683b"]},text:["less accurate","more accurate"]};
     return {
       backgroundColor:"transparent",
       animation:false,
-      title:{text:c.title,left:14,top:12,textStyle:{color:"#dfe8f2",fontSize:14,fontWeight:600},
-        subtext:c.sub,subtextStyle:{color:"#5f6e82",fontSize:11.5}},
-      grid:{left:c.leftPad,right:28,top:108,bottom:64},
+      title:{text:c.title,left:narrow?10:14,top:12,
+        textStyle:{color:"#dfe8f2",fontSize:narrow?12:14,fontWeight:600,
+          width:narrow?chart.getWidth()-24:undefined,overflow:narrow?"break":"none"},
+        subtext:narrow?"":c.sub,subtextStyle:{color:"#5f6e82",fontSize:11.5}},
+      grid:{left:narrow?Math.min(c.leftPad,98):c.leftPad,right:narrow?10:28,top:108,bottom:narrow?56:64},
       tooltip:{backgroundColor:"rgba(14,20,30,.97)",borderColor:"#2c3a4d",borderWidth:1,
-        textStyle:{color:"#e7edf5",fontSize:12},formatter:c.tip},
+        textStyle:{color:"#e7edf5",fontSize:12},confine:true,formatter:c.tip},
       xAxis:{type:"category",data:c.cols,position:"top",
-        axisLabel:{color:"#9fb3cc",fontSize:10.5,interval:0,rotate:c.rotate||0,margin:12},
+        axisLabel:{color:"#9fb3cc",fontSize:narrow?9.5:10.5,interval:0,
+          rotate:narrow?Math.max(c.rotate||0,45):(c.rotate||0),margin:narrow?8:12,formatter:trunc(14)},
         axisLine:{show:false},axisTick:{show:false},splitArea:{show:false}},
-      yAxis:{type:"category",data:c.rows,inverse:true,axisLabel:{color:"#cdd8e6",fontSize:11},
+      yAxis:{type:"category",data:c.rows,inverse:true,
+        axisLabel:{color:"#cdd8e6",fontSize:narrow?9.5:11,formatter:trunc(15)},
         axisLine:{show:false},axisTick:{show:false},splitArea:{show:false}},
       // ECharts horizontal continuous visualMap: itemHeight = bar LENGTH, itemWidth = THICKNESS
       // (swapping them renders a stray vertical bar over the heatmap).
-      visualMap:Object.assign({calculable:false,orient:"horizontal",left:"center",bottom:16,itemWidth:13,itemHeight:240,
-        textStyle:{color:"#8a99ad",fontSize:10.5}},vm),
+      visualMap:Object.assign({calculable:false,orient:"horizontal",left:"center",bottom:narrow?10:16,
+        itemWidth:13,itemHeight:narrow?150:240,textStyle:{color:"#8a99ad",fontSize:10.5}},vm),
       series:[{type:"heatmap",data:c.data,
-        label:{show:true,color:"#eaf1f8",fontSize:10.5,formatter:c.labelFmt||function(p){return (p.value[2]>0?"+":"")+p.value[2];}},
+        label:{show:true,color:"#eaf1f8",fontSize:narrow?9:10.5,formatter:c.labelFmt||function(p){return (p.value[2]>0?"+":"")+p.value[2];}},
         itemStyle:{borderColor:"#0c1016",borderWidth:2},emphasis:{itemStyle:{borderColor:"#fff",borderWidth:1.5}}}]
     };
   }
@@ -847,6 +892,10 @@
   $("#evToggle").addEventListener("change",function(){ state.showEvents=this.checked; renderChart(active()); });
   // zoom reset (the zoom window itself is captured on the chart's "datazoom" event)
   $("#zoomReset").addEventListener("click",function(){ state.zoom=null; renderChart(active()); });
+  // touch screens: vertical swipes scroll the page (touch-action pan-y above), horizontal drags
+  // pan the chart, and zooming is done with the slider — adjust the hint accordingly
+  if(window.matchMedia && matchMedia("(pointer:coarse)").matches)
+    $("#zoomHint").textContent="drag to pan · zoom with the slider";
   // pollster menu open/close
   $("#pollBtn").addEventListener("click",function(e){ e.stopPropagation(); $("#pollMenu").classList.toggle("open"); });
   document.addEventListener("click",function(e){ if(!e.target.closest(".ctl")) $("#pollMenu").classList.remove("open"); });
@@ -854,7 +903,13 @@
   $("#chipAll").onclick=function(){var ac=active();state.visible=new Set(ac.parties.map(function(p){return p.name}));renderChips(ac);renderChart(ac);};
   $("#chipNone").onclick=function(){state.visible=new Set();renderChips(active());renderChart(active());};
   $("#chipMajor").onclick=function(){var ac=active();state.visible=new Set(ac.major.filter(function(m){return ac.parties.some(function(p){return p.name===m})}));renderChips(ac);renderChart(ac);};
-  window.addEventListener("resize",function(){ chart.resize(); });
+  // on a WIDTH change (rotation, window resize — not mobile URL-bar height jitter), re-render so
+  // the heatmap's narrow/wide layout and the trends option are recomputed for the new size
+  var rszT=null, lastW=window.innerWidth;
+  window.addEventListener("resize",function(){ chart.resize();
+    clearTimeout(rszT); rszT=setTimeout(function(){
+      if(window.innerWidth!==lastW){ lastW=window.innerWidth; if(state.mode!=="browse") renderAll(); }
+    },200); });
   [].forEach.call(document.querySelectorAll("#modebar .mtab"),function(btn){
     btn.onclick=function(){ if(state.mode===btn.dataset.m) return; state.mode=btn.dataset.m; syncHash(); renderAll(); };
   });
