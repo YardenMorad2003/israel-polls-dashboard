@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Israeli Election Polling 2019–2022</title>
+<style>
+  :root{
+    --bg:#0c1016; --bg2:#11161f; --card:#141b26; --card2:#0f1620;
+    --border:#222c3a; --border2:#2c3a4d; --ink:#e7edf5; --muted:#8a99ad; --muted2:#5f6e82;
+    --accent:#3aa0ff; --accent2:#16c4c4; --shadow:0 6px 24px rgba(0,0,0,.35);
+    --r:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:radial-gradient(1200px 600px at 70% -10%,#16202e 0%,var(--bg) 55%);color:var(--ink);
+    font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;font-feature-settings:"tnum" 1,"cv01" 1;}
+  .wrap{max-width:1560px;margin:0 auto;padding:26px 26px 60px}
+  a{color:var(--accent)}
+  h1{font-size:25px;font-weight:700;letter-spacing:-.02em;margin:0}
+  .sub{color:var(--muted);font-size:13.5px;margin-top:5px}
+  .header{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap;margin-bottom:18px}
+  .brandmark{font-size:12px;color:var(--muted2);text-align:right;line-height:1.5}
+
+  /* tabs */
+  .tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:18px}
+  .tab{background:var(--card);border:1px solid var(--border);color:var(--muted);padding:9px 15px;border-radius:11px;
+    cursor:pointer;font-size:13.5px;font-weight:600;transition:.15s;white-space:nowrap}
+  .tab:hover{border-color:var(--border2);color:var(--ink)}
+  .tab.active{background:linear-gradient(180deg,#1d2b40,#16202f);border-color:#36506f;color:#fff;
+    box-shadow:0 0 0 1px rgba(58,160,255,.25) inset}
+  .tab small{display:block;font-size:10.5px;font-weight:500;color:var(--muted2);margin-top:1px}
+  .tab.active small{color:#8fb6e0}
+
+  /* mode toggle */
+  .modebar{display:inline-flex;gap:5px;background:var(--card);border:1px solid var(--border);border-radius:13px;padding:4px;margin-bottom:16px}
+  .mtab{background:transparent;border:0;color:var(--muted);padding:9px 17px;border-radius:9px;font-size:13.5px;font-weight:650;cursor:pointer;transition:.15s}
+  .mtab:hover{color:var(--ink)}
+  .mtab.on{background:linear-gradient(180deg,#22324c,#172234);color:#fff;box-shadow:0 0 0 1px rgba(58,160,255,.22) inset}
+  /* mode visibility: show controls only for their mode */
+  .toolbar.acc-only,.toolbar.browse-only{display:none}
+  body:not(.mode-trends) .trends-only{display:none}
+  body.mode-accuracy .toolbar.acc-only{display:flex}
+  body.mode-browse .toolbar.browse-only{display:flex}
+  .lbl{color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em}
+  .hint{color:var(--muted2);font-size:12px}
+  .search{background:var(--card);border:1px solid var(--border);color:var(--ink);border-radius:10px;padding:9px 13px;
+    font-size:13px;width:300px;outline:none}
+  .search:focus{border-color:var(--border2)}
+  /* browse: wiki-style polls table */
+  #browseWrap{display:none}
+  body.mode-browse #browseWrap{display:block}
+  body.mode-browse .main{display:none}
+  .tsec{font-size:13.5px;font-weight:700;color:#dfe8f2;margin:20px 2px 9px}
+  .tsec span{color:var(--muted2);font-weight:500;font-size:12px}
+  .tbl-scroll{overflow:auto;max-height:74vh;border:1px solid var(--border);border-radius:12px;background:var(--card2)}
+  .ptbl{border-collapse:separate;border-spacing:0;font-size:12px;font-variant-numeric:tabular-nums}
+  .ptbl th,.ptbl td{padding:6px 7px;border-bottom:1px solid #141c28;text-align:center;white-space:nowrap}
+  .ptbl thead th{position:sticky;top:0;z-index:3;background:#0f1620;color:#cdd8e6;font-weight:700;font-size:10.5px;
+    white-space:normal;vertical-align:bottom;max-width:58px;line-height:1.15}
+  .ptbl td.c0,.ptbl th.c0,.ptbl td.c1,.ptbl th.c1{position:sticky;text-align:left;background:#0d141d;z-index:1}
+  .ptbl .c0{left:0;min-width:60px;color:var(--accent);font-weight:700}
+  .ptbl .c1{left:60px;min-width:150px;white-space:normal}
+  .ptbl thead th.c0,.ptbl thead th.c1{z-index:4;background:#0f1620}
+  .ptbl .c1 .pub{display:block;color:var(--muted2);font-size:10px;font-weight:400}
+  .ptbl tbody tr:hover td{background:#141e2b}
+  .ptbl tbody tr:hover td.c0,.ptbl tbody tr:hover td.c1{background:#16212f}
+  .ptbl td.lead{font-weight:800;color:#fff}
+  .ptbl td.bt{color:var(--muted2)}
+  .ptbl td.bloc{color:#9fb3cc;font-weight:700;background:#0f1722}
+  .ptbl tr.result td{font-weight:700;border-top:2px solid #2c3a4d}
+  .ptbl tr.result td.c0{color:#ffd479}
+  .ptbl tr.baseline td{color:var(--muted);font-style:italic}
+
+  /* accuracy ranking list */
+  .rank{display:flex;align-items:center;gap:11px;padding:8px 10px;border-radius:9px}
+  .rank+.rank{border-top:1px solid #131c28}
+  .rank .pos{flex:0 0 18px;color:var(--muted2);font-weight:700;font-size:12px;text-align:right;font-variant-numeric:tabular-nums}
+  .rank .nm{flex:1;font-size:12.5px;line-height:1.2}
+  .rank .nm small{color:var(--muted2);font-size:10px}
+  .rank .bar{flex:0 0 64px;height:6px;border-radius:3px;background:#161f2c;overflow:hidden}
+  .rank .bar i{display:block;height:100%;border-radius:3px}
+  .rank .mae{flex:0 0 44px;text-align:right;font-weight:700;font-size:12.5px;font-variant-numeric:tabular-nums}
+
+  /* kpis */
+  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:18px}
+  .kpi{background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid var(--border);border-radius:var(--r);
+    padding:14px 16px;box-shadow:var(--shadow)}
+  .kpi .v{font-size:25px;font-weight:750;letter-spacing:-.02em}
+  .kpi .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-top:3px}
+  .kpi .v small{font-size:13px;color:var(--muted);font-weight:600}
+
+  /* toolbar */
+  .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+  .seg{display:inline-flex;background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+  .seg button{background:transparent;border:0;color:var(--muted);padding:8px 13px;font-size:12.5px;font-weight:600;cursor:pointer}
+  .seg button.on{background:#1c2a3d;color:#fff}
+  .ctl{position:relative}
+  .btn{background:var(--card);border:1px solid var(--border);color:var(--ink);padding:8px 13px;border-radius:10px;
+    font-size:12.5px;font-weight:600;cursor:pointer;display:inline-flex;gap:8px;align-items:center}
+  .btn:hover{border-color:var(--border2)}
+  .btn .cnt{color:var(--muted)}
+  .switch{display:inline-flex;gap:8px;align-items:center;color:var(--muted);font-size:12.5px;font-weight:600;cursor:pointer;
+    background:var(--card);border:1px solid var(--border);border-radius:10px;padding:8px 13px}
+  .switch input{accent-color:var(--accent);width:15px;height:15px}
+  .grow{flex:1}
+
+  /* dropdown */
+  .menu{position:absolute;top:calc(100% + 6px);left:0;z-index:30;background:#0f1620;border:1px solid var(--border2);
+    border-radius:12px;box-shadow:var(--shadow);padding:10px;width:280px;max-height:340px;overflow:auto;display:none}
+  .menu.open{display:block}
+  .menu .row{display:flex;gap:8px;align-items:center;padding:5px 7px;border-radius:7px;font-size:12.5px;color:var(--ink);cursor:pointer}
+  .menu .row:hover{background:#16202e}
+  .menu .row input{accent-color:var(--accent)}
+  .menu .head{display:flex;justify-content:space-between;gap:8px;margin-bottom:7px}
+  .menu .head button{flex:1;font-size:11.5px;padding:6px;background:#16202e;border:1px solid var(--border);color:var(--muted);
+    border-radius:7px;cursor:pointer;font-weight:600}
+  .menu .head button:hover{color:#fff}
+
+  /* chips */
+  .card{background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid var(--border);border-radius:var(--r);
+    box-shadow:var(--shadow)}
+  .chips-card{padding:13px 15px;margin-bottom:16px}
+  .chips-card .cap{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:9px;
+    display:flex;justify-content:space-between;align-items:center}
+  .chips-card .cap a{font-size:11px;cursor:pointer;color:var(--muted);text-decoration:none;font-weight:600}
+  .chips-card .cap a:hover{color:#fff}
+  .chips{display:flex;flex-wrap:wrap;gap:7px}
+  .chip{display:inline-flex;align-items:center;gap:7px;background:#0e151f;border:1px solid var(--border);color:var(--muted);
+    padding:5px 10px 5px 8px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;transition:.12s;opacity:.5}
+  .chip .dot{width:9px;height:9px;border-radius:50%;background:var(--c);box-shadow:0 0 0 2px rgba(255,255,255,.04)}
+  .chip b{color:var(--muted2);font-weight:700}
+  .chip.on{opacity:1;border-color:var(--border2);color:var(--ink);background:#13202f}
+  .chip.on{border-color:color-mix(in srgb,var(--c) 55%,var(--border));
+    background:color-mix(in srgb,var(--c) 14%,#0e151f)}
+  .chip.on b{color:var(--ink)}
+
+  /* main */
+  .main{display:grid;grid-template-columns:1fr 340px;gap:16px}
+  .chart-card{padding:8px 8px 4px}
+  #chart{width:100%;height:560px}
+  .events-card{padding:0;display:flex;flex-direction:column;max-height:620px}
+  .events-card .eh{padding:14px 16px 10px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:baseline}
+  .events-card .eh b{font-size:14px}
+  .events-card .eh span{font-size:11px;color:var(--muted)}
+  .elist{overflow:auto;padding:6px}
+  .ev{display:flex;gap:11px;padding:9px 10px;border-radius:9px;cursor:pointer;transition:.12s;align-items:flex-start}
+  .ev:hover{background:#16202e}
+  .ev .d{flex:0 0 56px;font-size:11px;color:var(--accent);font-weight:700;padding-top:1px;font-variant-numeric:tabular-nums}
+  .ev .t{font-size:12.5px;color:var(--ink);line-height:1.42}
+  .ev .yr{color:var(--muted2);font-weight:600;font-size:10px}
+  .ev.sel{background:#241f12;box-shadow:inset 0 0 0 1px rgba(255,212,121,.4)}
+  .ev.sel .d{color:#ffd479}
+
+  .foot{margin-top:22px;color:var(--muted2);font-size:11.5px;line-height:1.6;border-top:1px solid var(--border);padding-top:14px}
+  .foot code{color:var(--muted);background:#0e151f;padding:1px 6px;border-radius:5px}
+
+  /* accuracy-mode methodology caveats */
+  .accnote{display:none;margin-top:16px;color:var(--muted2);font-size:11.5px;line-height:1.7;
+    background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid var(--border);
+    border-radius:var(--r);padding:12px 16px}
+  body.mode-accuracy .accnote{display:block}
+  .accnote b{color:var(--muted)}
+  .accnote i{color:#aebccd;font-style:normal;font-weight:600}
+  @media(max-width:1080px){.main{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}#chart{height:460px}
+    .events-card{max-height:380px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div>
+      <h1>The Israeli Polling Saga · 2019–2022</h1>
+      <div class="sub">Seat-projection polls across five elections (21st–25th Knesset), with campaign events annotated.</div>
+    </div>
+    <div class="brandmark">604 polls · 117 events · 5 cycles<br>source: Wikipedia opinion-polling pages</div>
+  </div>
+
+  <div class="modebar" id="modebar">
+    <button data-m="trends" class="mtab on">Polling trends</button>
+    <button data-m="accuracy" class="mtab">Pollster accuracy</button>
+    <button data-m="browse" class="mtab">Browse polls</button>
+  </div>
+  <div class="tabs" id="tabs"></div>
+  <div class="kpis" id="kpis"></div>
+
+  <div class="toolbar acc-only">
+    <span class="lbl">Metric</span>
+    <div class="seg" id="metricSeg">
+      <button data-k="avg" class="on">Campaign average</button>
+      <button data-k="month">Final month</button>
+      <button data-k="last">Last poll</button>
+      <button data-k="elecday">Election day</button>
+    </div>
+    <span class="lbl">Lists</span>
+    <div class="seg" id="scopeSeg">
+      <button data-s="seated" class="on">Seated</button>
+      <button data-s="all">All polled</button>
+    </div>
+    <span class="hint" id="metricHint"></span>
+  </div>
+  <div class="toolbar browse-only">
+    <input id="pollSearch" class="search" placeholder="Filter by pollster…" autocomplete="off">
+    <span class="hint" id="browseHint"></span>
+  </div>
+
+  <div class="toolbar trends-only">
+    <div class="seg" id="viewSeg">
+      <button data-v="both" class="on">Trend + polls</button>
+      <button data-v="trend">Trend</button>
+      <button data-v="polls">Polls</button>
+    </div>
+    <div class="ctl">
+      <button class="btn" id="pollBtn">Pollsters <span class="cnt" id="pollCnt"></span> ▾</button>
+      <div class="menu" id="pollMenu"></div>
+    </div>
+    <label class="switch"><input type="checkbox" id="evToggle" checked> Events</label>
+    <button class="btn" id="zoomReset" title="Show the full period">Reset zoom</button>
+    <span class="hint">scroll to zoom · drag to pan</span>
+  </div>
+
+  <div class="card chips-card trends-only">
+    <div class="cap"><span>Parties — click to toggle</span><span><a id="chipAll">all</a> · <a id="chipMajor">major</a> · <a id="chipNone">none</a></span></div>
+    <div class="chips" id="chips"></div>
+  </div>
+
+  <div class="main">
+    <div class="card chart-card"><div id="chart"></div></div>
+    <div class="card events-card">
+      <div class="eh"><b>Events</b><span id="evCount"></span></div>
+      <div class="elist" id="elist"></div>
+    </div>
+  </div>
+  <div class="accnote">
+    <b>Reading these numbers — a few honest caveats.</b><br>
+    • A poll measures opinion on the day it was taken, not on election day — so the <i>campaign average</i> mixes real
+    opinion change with pollster error. In long cycles (2021's polling window spans a full year) much of everyone's
+    "error" is simply that opinion moved; <i>Final month</i> and <i>Last poll</i> are fairer tests of a firm's closing call.<br>
+    • Firms stop polling at different distances from the finish (publishing polls is banned in the last days of the
+    campaign), so "last polls" differ in age — the ranking shows how many days before the election each was taken.<br>
+    • Seats are a blunt yardstick: the 3.25% threshold and seat allocation can turn a small vote-share miss into several
+    seats, and per-list errors are not independent — seats sum to 120, so over-counting one list forces under-counting
+    another.<br>
+    • These are point estimates with no error bars. A firm rated on a handful of polls can rank high or low by luck;
+    treat gaps of a few tenths of a seat as a tie.<br>
+    • The all-cycles ranking uses a <i>skill score</i> — each firm's error divided by that election's field-average
+    error (1× = typical, lower = better) — because some elections were much harder to poll than others, and firms took
+    part in different ones.<br>
+    • Under <i>All polled</i>, only lists that actually stood in the election are graded as threshold calls; lists that
+    merged or withdrew mid-campaign are not counted as misses.
+  </div>
+  <div id="browseWrap" class="browse-only"></div>
+
+  <div class="foot" id="foot"></div>
+</div>
+
+<script src="echarts.min.js"></script>
+<script src="data.js"></script>
+<script>
+(function(){
+  "use strict";
+  var D = window.POLLDATA;
+  var $ = function(s,r){return (r||document).querySelector(s)};
+  var elc = function(t,c,h){var e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e};
+  var ms = function(iso){return new Date(iso+"T00:00:00Z").getTime()};
+  var DAY = 86400000;
+  var MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  function fmt(t){var d=new Date(t);return d.getUTCDate()+" "+MON[d.getUTCMonth()]+" "+String(d.getUTCFullYear()).slice(2);}
+  function fmtFull(t){var d=new Date(t);return d.getUTCDate()+" "+MON[d.getUTCMonth()]+" "+d.getUTCFullYear();}
+
+  var state = { mode:"trends", cycle:"all", view:"both", showEvents:true, visible:new Set(), pollsters:new Set(),
+                focus:null, zoom:null, metric:"avg", accScope:"seated", selPoll:null, selEvent:null, search:"", lastKind:null };
+  // One shared container hosts both the cartesian "trends" chart and the "accuracy" heatmap.
+  // Renderer is SVG, not canvas: on some GPU/driver combos the canvas wasn't reliably cleared
+  // between repaints, leaving stale frames behind (ghost charts under the heatmap, smeared trails
+  // while zooming). SVG is plain DOM — the current nodes ARE the frame, so stale pixels can't
+  // exist. On a chart-TYPE switch the instance is additionally rebuilt via dispose() (initChart).
+  var chart=null;
+  function onChartClick(p){
+    // click an event's vertical line (or its top dot) on the chart -> reveal it in the Events panel
+    if(state.mode!=="trends"||p.componentType!=="markLine") return;
+    if(p.seriesName && p.seriesName!=="__events") return;
+    var i=(p.data&&p.data.ev_i!=null)?p.data.ev_i:-1;
+    if(i<0){ var nm=p.name||(p.data&&p.data.name);
+      if(nm!=null){ var evs=active().events; for(var k=0;k<evs.length;k++){ if(evs[k].e===nm){ i=k; break; } } } }
+    if(i>=0) selectEvent(i);
+  }
+  function initChart(){
+    if(chart) chart.dispose();
+    chart=echarts.init($("#chart"), null, {renderer:"svg"});
+    chart.on("click",onChartClick);
+    // capture the trends zoom window (percent of full extent) so re-renders preserve it;
+    // inside-zoom reports via e.batch, the slider directly — fall back to getOption() if neither
+    chart.on("datazoom",function(e){
+      if(state.mode!=="trends") return;
+      var b=(e.batch&&e.batch[0])||e;
+      if(b.start!=null&&b.end!=null){ state.zoom={start:b.start,end:b.end}; return; }
+      var dz=chart.getOption().dataZoom;
+      if(dz&&dz.length) state.zoom={start:dz[0].start,end:dz[0].end};
+    });
+    window.__chart=chart;
+  }
+  initChart();
+
+  // ---- active cycle (single or synthesized 'all') ----
+  function allCycle(){
+    var polls=[],events=[],pm=new Map(),ps=new Set();
+    D.cycles.forEach(function(c){
+      c.polls.forEach(function(p){polls.push(p)});
+      c.events.forEach(function(e){events.push(Object.assign({c:c.id},e))});
+      c.pollsters.forEach(function(f){ps.add(f)});
+      c.parties.forEach(function(p){ if(!pm.has(p.name)) pm.set(p.name,{name:p.name,color:p.color,peak:p.peak,result:null});
+        else pm.get(p.name).peak=Math.max(pm.get(p.name).peak,p.peak); });
+    });
+    var parties=[...pm.values()].sort(function(a,b){return b.peak-a.peak});
+    return {id:"all",label:"All cycles",knesset:"21st–25th Knesset",polls:polls,events:events,parties:parties,
+      pollsters:[...ps].sort(),major:D.allDefault,
+      elections:D.cycles.map(function(c){return {date:c.election,label:c.label}})};
+  }
+  function active(){
+    if(state.cycle==="all") return allCycle();
+    var c=D.cycles.find(function(x){return x.id===state.cycle});
+    return Object.assign({},c,{elections:[{date:c.election,label:c.label}]});
+  }
+
+  // Full x extent (first → last poll) of the active selection. The axis is pinned to this
+  // explicitly so the zoom window's percent mapping stays stable no matter which parties or
+  // pollsters are filtered (otherwise the axis would shrink to the filtered data's extent).
+  function xExtent(ac){
+    return ac.start ? [ms(ac.start),ms(ac.end)]
+                    : [ms(D.cycles[0].start),ms(D.cycles[D.cycles.length-1].end)];
+  }
+
+  // ---- trend: ±W-day moving average over a party's points ----
+  // Break the line across long polling gaps (e.g. the lull between two elections) so the
+  // all-cycles view doesn't draw a misleading smooth bridge over months with no data.
+  function trend(pts, W){
+    W=(W||14)*DAY;
+    var GAP=35*DAY;
+    var xs=[...new Set(pts.map(function(p){return p[0]}))].sort(function(a,b){return a-b});
+    var out=[],prev=null;
+    xs.forEach(function(x){
+      if(prev!=null && x-prev>GAP) out.push([(prev+x)/2, null]);   // null y -> ECharts breaks the line here
+      var s=0,n=0;
+      for(var i=0;i<pts.length;i++){ if(Math.abs(pts[i][0]-x)<=W){s+=pts[i][1];n++;} }
+      out.push([x, Math.round((s/n)*10)/10]);
+      prev=x;
+    });
+    return out;
+  }
+
+  // ================= renders =================
+  function renderTabs(){
+    var t=$("#tabs"); t.innerHTML="";
+    var tabs=[{id:"all",label:"All cycles",sub:"2018 – 2022"}].concat(D.cycles.map(function(c){
+      return {id:c.id,label:c.label,sub:c.knesset};}));
+    tabs.forEach(function(o){
+      var b=elc("div","tab"+(state.cycle===o.id?" active":""),o.label+"<small>"+o.sub+"</small>");
+      b.onclick=function(){ state.cycle=o.id; syncHash(); resetForCycle(); renderAll(); };
+      t.appendChild(b);
+    });
+  }
+
+  function distinctPolls(polls){ var s=new Set(); polls.forEach(function(p){s.add((p.c||state.cycle)+"|"+p.d+"|"+p.f)}); return s.size; }
+
+  function renderKPIs(ac, fpolls){
+    var parties=new Set(fpolls.map(function(p){return p.p}));
+    var span = ac.start? (fmt(ms(ac.start))+" – "+fmt(ms(ac.end))) :
+      (fmt(ms(D.cycles[0].start))+" – "+fmt(ms(D.cycles[D.cycles.length-1].end)));
+    if(state.cycle==="all"){ span = "Nov 2018 – Nov 2022"; }
+    var k=[
+      {v:distinctPolls(fpolls), l:"Polls"},
+      {v:ac.pollsters.length, l:"Pollsters"},
+      {v:parties.size, l:"Parties polled"},
+      {v:ac.events.length, l:"Events"},
+      {v:span, l:"Period", small:true}
+    ];
+    kpiCards(k);
+  }
+  function kpiCards(k){
+    var c=$("#kpis"); c.innerHTML="";
+    k.forEach(function(o){ c.appendChild(elc("div","kpi",
+      '<div class="v"'+(o.small?' style="font-size:15px;padding-top:7px;line-height:1.3"':'')+'>'+o.v+'</div><div class="l">'+o.l+'</div>')); });
+  }
+
+  function renderChips(ac){
+    var box=$("#chips"); box.innerHTML="";
+    ac.parties.forEach(function(p){
+      var seats = p.result!=null?p.result:p.peak;
+      var ch=elc("button","chip"+(state.visible.has(p.name)?" on":""),
+        '<span class="dot"></span>'+p.name+' <b>'+seats+'</b>');
+      ch.style.setProperty("--c",p.color);
+      ch.onclick=function(){ if(state.visible.has(p.name))state.visible.delete(p.name); else state.visible.add(p.name);
+        renderChips(ac); renderChart(ac); };
+      box.appendChild(ch);
+    });
+  }
+
+  function renderPollsters(ac){
+    var menu=$("#pollMenu"); menu.innerHTML="";
+    var head=elc("div","head");
+    var ba=elc("button",null,"All"), bn=elc("button",null,"None");
+    ba.onclick=function(){ac.pollsters.forEach(function(f){state.pollsters.add(f)});renderPollsters(ac);refresh(ac);};
+    bn.onclick=function(){state.pollsters.clear();renderPollsters(ac);refresh(ac);};
+    head.appendChild(ba);head.appendChild(bn);menu.appendChild(head);
+    ac.pollsters.forEach(function(f){
+      var row=elc("label","row");
+      var cb=elc("input"); cb.type="checkbox"; cb.checked=state.pollsters.has(f);
+      cb.onchange=function(){ if(cb.checked)state.pollsters.add(f); else state.pollsters.delete(f); refresh(ac); updatePollCnt(ac); };
+      row.appendChild(cb); row.appendChild(elc("span",null,f)); menu.appendChild(row);
+    });
+    updatePollCnt(ac);
+  }
+  function updatePollCnt(ac){ $("#pollCnt").textContent="("+state.pollsters.size+"/"+ac.pollsters.length+")"; }
+
+  var evRows={};   // active-cycle event index -> panel row DOM (for chart <-> panel linking)
+  function renderEvents(ac){
+    $(".events-card .eh b").textContent="Events";
+    var list=$("#elist"); list.innerHTML="";
+    $("#evCount").textContent=ac.events.length+" total";
+    evRows={};
+    var evs=ac.events.map(function(e,i){return {e:e,i:i};})
+                     .filter(function(o){return o.e.d;})
+                     .sort(function(a,b){return ms(b.e.d)-ms(a.e.d);});
+    evs.forEach(function(o){ var e=o.e;
+      var row=elc("div","ev"+(state.selEvent===o.i?" sel":""));
+      row.innerHTML='<div class="d">'+fmt(ms(e.d))+'</div><div class="t">'+e.e+'</div>';
+      row.onclick=function(){ selectEvent(o.i); };
+      list.appendChild(row); evRows[o.i]=row;
+    });
+  }
+
+  // ================= chart =================
+  function group(fpolls){
+    var g={};
+    fpolls.forEach(function(p){ (g[p.p]=g[p.p]||[]).push([ms(p.d),p.s,p.f]); });
+    return g;
+  }
+  function renderChart(ac){
+    var fpolls = ac.polls.filter(function(p){return state.pollsters.has(p.f)});
+    var g=group(fpolls);
+    var series=[], pcolor={};
+    ac.parties.forEach(function(p){ pcolor[p.name]=p.color; });
+
+    ac.parties.forEach(function(p){
+      if(!state.visible.has(p.name)) return;
+      var pts=(g[p.name]||[]).map(function(a){return [a[0],a[1]]});
+      if(!pts.length) return;
+      if(state.view!=="trend"){
+        series.push({name:p.name,type:"scatter",symbolSize:state.view==="polls"?6:4.5,
+          itemStyle:{color:p.color,opacity:state.view==="polls"?.7:.32,borderWidth:0},
+          data:(g[p.name]||[]).map(function(a){return {value:[a[0],a[1]],f:a[2],p:p.name}}),z:2});
+      }
+      if(state.view!=="polls"){
+        series.push({name:p.name,type:"line",smooth:.35,showSymbol:false,
+          lineStyle:{color:p.color,width:2.4},
+          itemStyle:{color:p.color},data:trend(pts),z:5,emphasis:{focus:"series"}});
+      }
+    });
+
+    // election markers + events on a transparent carrier series
+    var marks=[];
+    ac.elections.forEach(function(e){
+      marks.push({xAxis:ms(e.date),lineStyle:{color:"#5b6b80",width:1.4,type:"solid",opacity:.85},
+        label:{show:true,formatter:e.label,color:"#9fb3cc",fontSize:10.5,position:"insideEndTop",rotate:0,fontWeight:600},
+        emphasis:{disabled:true}});
+    });
+    var evMarks=[];
+    if(state.showEvents){
+      ac.events.forEach(function(e,ei){ if(!e.d) return;
+        evMarks.push({xAxis:ms(e.d),ev_i:ei,lineStyle:{color:"#cdd8e6",width:1,type:[2,3],opacity:.22},
+          label:{show:false},
+          emphasis:{lineStyle:{opacity:.7,color:"#ffd479",width:1.5},label:{show:true,formatter:function(){return e.e},
+            color:"#ffe6a8",backgroundColor:"#1c2230",padding:[4,7],borderRadius:5,fontSize:11}},
+          name:e.e});
+      });
+    }
+    if(state.focus){ marks.push({xAxis:state.focus,lineStyle:{color:"#ffd479",width:1.7,type:"solid",opacity:.95},
+      label:{show:false},emphasis:{disabled:true}}); }
+    series.push({name:"__elections",type:"line",data:[],markLine:{symbol:["none","none"],silent:false,
+      label:{show:true},lineStyle:{},data:marks},z:1});
+    if(evMarks.length) series.push({name:"__events",type:"line",data:[],markLine:{symbol:["none","circle"],
+      symbolSize:7,label:{show:false},data:evMarks,emphasis:{disabled:false}},z:1,silent:false});
+
+    // Fixed y-axis max (stable across party toggles) with a little headroom above the top line.
+    var pkMax=Math.max.apply(null, ac.parties.map(function(p){return p.peak||0;}));
+    var yMax=Math.max(10, Math.ceil((pkMax+2)/10)*10);
+    var ex=xExtent(ac);
+    var z=state.zoom||{start:0,end:100};
+    var opt={
+      backgroundColor:"transparent",
+      animation:false,
+      grid:{left:46,right:18,top:24,bottom:64},
+      // x-only zoom: wheel/pinch to zoom, drag to pan, slider below for coarse navigation.
+      // filterMode "none" keeps off-window points so trend lines stay continuous at the edges.
+      dataZoom:[
+        {type:"inside",xAxisIndex:0,filterMode:"none",start:z.start,end:z.end,
+         zoomOnMouseWheel:true,moveOnMouseMove:true,moveOnMouseWheel:false},
+        {type:"slider",xAxisIndex:0,filterMode:"none",start:z.start,end:z.end,height:20,bottom:10,
+         borderColor:"#222c3a",backgroundColor:"rgba(255,255,255,.02)",fillerColor:"rgba(58,160,255,.10)",
+         dataBackground:{lineStyle:{color:"#2c3a4d",opacity:.7},areaStyle:{color:"#16202e",opacity:.7}},
+         selectedDataBackground:{lineStyle:{color:"#3aa0ff",opacity:.5},areaStyle:{color:"rgba(58,160,255,.12)"}},
+         handleStyle:{color:"#1d2b40",borderColor:"#36506f"},moveHandleStyle:{color:"#2c3a4d"},
+         emphasis:{handleStyle:{borderColor:"#3aa0ff"},moveHandleStyle:{color:"#36506f"}},
+         textStyle:{color:"#8a99ad",fontSize:10},labelFormatter:function(v){return fmt(v);}}
+      ],
+      tooltip:{trigger:"axis",axisPointer:{type:"line",lineStyle:{color:"#3a4a60"}},
+        backgroundColor:"rgba(14,20,30,.96)",borderColor:"#2c3a4d",borderWidth:1,
+        textStyle:{color:"#e7edf5",fontSize:12},confine:true,
+        formatter:function(ps){
+          if(!ps||!ps.length) return "";
+          var t=ps[0].axisValue, rows={}, order=[];
+          ps.forEach(function(p){
+            if(p.seriesName.indexOf("__")===0) return;
+            var v = p.seriesType==="line" ? p.data[1] : (p.data&&p.data.value?p.data.value[1]:null);
+            if(v==null) return;
+            if(!(p.seriesName in rows)){rows[p.seriesName]={c:p.color,v:v,trend:p.seriesType==="line"};order.push(p.seriesName);}
+            else if(p.seriesType==="line"){rows[p.seriesName]={c:p.color,v:v,trend:true};}
+          });
+          order.sort(function(a,b){return rows[b].v-rows[a].v});
+          var h='<div style="font-size:11px;color:#8a99ad;margin-bottom:5px">'+fmtFull(t)+'</div>';
+          order.slice(0,14).forEach(function(n){var r=rows[n];
+            h+='<div style="display:flex;justify-content:space-between;gap:14px;line-height:1.55">'+
+               '<span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+r.c+
+               ';margin-right:6px"></span>'+n+'</span><b>'+r.v+'</b></div>';});
+          return h;
+        }},
+      xAxis:{type:"time",min:ex[0],max:ex[1],axisLine:{lineStyle:{color:"#2c3a4d"}},axisLabel:{color:"#8a99ad",fontSize:11},
+        splitLine:{show:false},axisPointer:{label:{show:false}}},
+      yAxis:{type:"value",name:"seats",nameTextStyle:{color:"#5f6e82",fontSize:11,padding:[0,0,0,-30]},
+        min:0,max:yMax,axisLabel:{color:"#8a99ad",fontSize:11},axisLine:{show:false},
+        splitLine:{lineStyle:{color:"#1a2330"}}},
+      series:series
+    };
+    chart.setOption(opt,{notMerge:true});
+  }
+
+  // Select an event from EITHER the panel or a click on its chart line: mark it gold on the chart,
+  // highlight the matching panel row + scroll it into view.
+  function selectEvent(i){
+    var ac=active(), e=ac.events[i]; if(!e||!e.d) return;
+    state.selEvent=i; state.focus=ms(e.d);
+    Object.keys(evRows).forEach(function(k){ evRows[k].classList.toggle("sel", +k===i); });
+    if(evRows[i]) evRows[i].scrollIntoView({block:"nearest",behavior:"smooth"});
+    // if the event sits outside the current zoom window, pan the window (same width) to centre it
+    if(state.zoom){
+      var ex=xExtent(ac), span=ex[1]-ex[0];
+      if(span>0){
+        var t=state.focus, s=ex[0]+span*state.zoom.start/100, en=ex[0]+span*state.zoom.end/100;
+        if(t<s||t>en){
+          var w=Math.max(en-s,1), ns=Math.min(Math.max(t-w/2,ex[0]),ex[1]-w);
+          state.zoom={start:(ns-ex[0])/span*100,end:(ns+w-ex[0])/span*100};
+        }
+      }
+    }
+    renderChart(ac);
+  }
+
+  // ================= pollster accuracy =================
+  // Per pollster, average projection per party (EXCLUDING the election-day poll) vs the actual
+  // result. MAE = mean |avg-result| over the scored lists.
+  //   metric "avg" = mean of all the pollster's polls; "last" = final poll before election day;
+  //          "elecday" = the day-of (exit) poll on election day itself.
+  //   scope  "seated" = only lists that won seats (result>0). "all" = also lists the pollster
+  //          projected with seats but that MISSED the threshold (scored against their real 0), so
+  //          over-projecting a doomed list now counts as error. A list both the pollster and
+  //          reality put at 0 carries no signal, so it's skipped — keeps the MAE from being diluted.
+  function accuracyRows(cyc, metric, scope){
+    metric=metric||state.metric; scope=scope||state.accScope;
+    var elec=cyc.election, result=cyc.result||{}, tEl=ms(elec);
+    var eday=(metric==="elecday");
+    var seated=cyc.parties.filter(function(p){return (result[p.name]||0)>0;}).map(function(p){return p.name;});
+    var universe=cyc.parties.map(function(p){return p.name;});   // every list polled this cycle
+    var byF={};
+    cyc.polls.forEach(function(p){
+      if(eday ? p.d!==elec : p.d===elec) return;   // elecday: keep ONLY election-day polls; else drop them
+      if(metric==="month" && tEl-ms(p.d)>30*DAY) return;   // final-month: only the last 30 days
+      var r=byF[p.f]||(byF[p.f]={byDate:{},dset:{}});
+      var dd=r.byDate[p.d]||(r.byDate[p.d]={});
+      (dd[p.p]=dd[p.p]||[]).push(p.s); r.dset[p.d]=1;
+    });
+    var mean=function(a){return a.reduce(function(x,y){return x+y},0)/a.length;};
+    var rows=[], projMax={};
+    Object.keys(byF).forEach(function(f){
+      var r=byF[f], dates=Object.keys(r.dset).sort(), n=dates.length;   // ISO dates sort chronologically
+      var minN = eday?1 : metric==="month"?2 : 3;   // exit firms have one poll; the 30-day window is short
+      if(n < minN) return;
+      var avgs={};
+      if(metric==="last"||eday){                     // single projection: the latest (for elecday, the day-of) poll
+        var dd=r.byDate[dates[n-1]];
+        universe.forEach(function(pt){ if(dd[pt]&&dd[pt].length) avgs[pt]=mean(dd[pt]); });
+      }else{
+        universe.forEach(function(pt){ var all=[]; dates.forEach(function(d){ if(r.byDate[d][pt]) all=all.concat(r.byDate[d][pt]); });
+          if(all.length) avgs[pt]=mean(all); });
+      }
+      var errs=[]; Object.keys(avgs).forEach(function(pt){ var a=avgs[pt];
+        // only lists on the FINAL ballot are gradable: the result row records contested lists that
+        // missed the threshold at 0, while lists that merged/withdrew/renamed mid-campaign (e.g.
+        // pre-merger "Labor" in 2019b) are absent — scoring those against 0 would grade a naming
+        // artifact, not a polling error.
+        if(!(pt in result)) return;
+        var res=result[pt];
+        if(scope==="seated" && res<=0) return;       // seated scope: ignore every sub-threshold list
+        if(scope==="all" && res<=0 && a<=0) return;  // all scope: skip lists both sides put at 0 (no signal)
+        errs.push(Math.abs(a-res)); projMax[pt]=Math.max(projMax[pt]||0,a); });
+      if(errs.length) rows.push({f:f,avgs:avgs,n:n,mae:mean(errs),last:dates[n-1]});
+    });
+    rows.sort(function(a,b){return a.mae-b.mae;});
+    // heatmap columns: seated lists, or (for "all") seated + the projected lists, ranked so the
+    // biggest results AND biggest over-projections surface first.
+    var cols=seated;
+    if(scope==="all"){
+      var set={}; seated.forEach(function(p){set[p]=1;}); Object.keys(projMax).forEach(function(p){set[p]=1;});
+      cols=Object.keys(set).sort(function(a,b){return Math.max(result[b]||0,projMax[b]||0)-Math.max(result[a]||0,projMax[a]||0);});
+    }
+    return {rows:rows,parties:cols,result:result,metric:metric,scope:scope};
+  }
+  function metricLabel(){ return state.metric==="last"?"last poll":state.metric==="elecday"?"election-day poll":state.metric==="month"?"final-month average":"campaign average"; }
+  function scopeLabel(){ return state.accScope==="all"?"all polled lists":"seated parties"; }
+  function maeColor(m){ return m<1.0?"#49c06a":m<1.8?"#d6c84a":m<2.6?"#e2913b":"#e2683b"; }
+  function skillColor(v){ return v<0.85?"#49c06a":v<1?"#d6c84a":v<1.2?"#e2913b":"#e2683b"; }
+  function setMetricHint(){
+    [].forEach.call(document.querySelectorAll("#metricSeg button"),function(x){x.classList.toggle("on",x.dataset.k===state.metric);});
+    var h=$("#metricHint"); if(h) h.textContent = state.metric==="last"
+      ? "each pollster's final poll before election day, vs. the actual result"
+      : state.metric==="elecday"
+      ? "each pollster's election-day (exit) poll, vs. the actual result"
+      : state.metric==="month"
+      ? "mean of each pollster's polls from the last 30 days of the campaign, vs. the actual result"
+      : "mean of each pollster's campaign polls, vs. the actual result"; }
+
+  // shared heatmap option (title clear of rotated headers; legend at the bottom; legible mid-tone)
+  function heatmapOption(c){
+    var vm = c.diverging
+      ? {min:-c.max,max:c.max,inRange:{color:["#3b8fd4","#2b3a4d","#e0743f"]},text:["over","under"]}
+      : {min:0,max:c.max,inRange:{color:["#49c06a","#d6c84a","#e2683b"]},text:["less accurate","more accurate"]};
+    return {
+      backgroundColor:"transparent",
+      animation:false,
+      title:{text:c.title,left:14,top:12,textStyle:{color:"#dfe8f2",fontSize:14,fontWeight:600},
+        subtext:c.sub,subtextStyle:{color:"#5f6e82",fontSize:11.5}},
+      grid:{left:c.leftPad,right:28,top:108,bottom:64},
+      tooltip:{backgroundColor:"rgba(14,20,30,.97)",borderColor:"#2c3a4d",borderWidth:1,
+        textStyle:{color:"#e7edf5",fontSize:12},formatter:c.tip},
+      xAxis:{type:"category",data:c.cols,position:"top",
+        axisLabel:{color:"#9fb3cc",fontSize:10.5,interval:0,rotate:c.rotate||0,margin:12},
+        axisLine:{show:false},axisTick:{show:false},splitArea:{show:false}},
+      yAxis:{type:"category",data:c.rows,inverse:true,axisLabel:{color:"#cdd8e6",fontSize:11},
+        axisLine:{show:false},axisTick:{show:false},splitArea:{show:false}},
+      // ECharts horizontal continuous visualMap: itemHeight = bar LENGTH, itemWidth = THICKNESS
+      // (swapping them renders a stray vertical bar over the heatmap).
+      visualMap:Object.assign({calculable:false,orient:"horizontal",left:"center",bottom:16,itemWidth:13,itemHeight:240,
+        textStyle:{color:"#8a99ad",fontSize:10.5}},vm),
+      series:[{type:"heatmap",data:c.data,
+        label:{show:true,color:"#eaf1f8",fontSize:10.5,formatter:c.labelFmt||function(p){return (p.value[2]>0?"+":"")+p.value[2];}},
+        itemStyle:{borderColor:"#0c1016",borderWidth:2},emphasis:{itemStyle:{borderColor:"#fff",borderWidth:1.5}}}]
+    };
+  }
+
+  function renderAccuracy(){
+    if(state.cycle==="all") return renderAccuracyAll();
+    setMetricHint();
+    var cyc=D.cycles.find(function(c){return c.id===state.cycle});
+    var A=accuracyRows(cyc,state.metric);
+    var best=A.rows[0], avg=A.rows.reduce(function(s,r){return s+r.mae},0)/(A.rows.length||1);
+    kpiCards([
+      {v:A.rows.length,l:"Pollsters rated"},
+      {v:best?best.f:"–",l:"Most accurate ("+metricLabel()+")",small:true},
+      {v:best?best.mae.toFixed(2):"–",l:"Best error (seats)"},
+      {v:avg.toFixed(2),l:"Mean error (seats)"},
+      {v:A.parties.length,l:state.accScope==="all"?"Lists scored":"Parties scored"}
+    ]);
+    $(".events-card .eh b").textContent="Accuracy ranking";
+    $("#evCount").textContent=cyc.label+" · "+metricLabel()+" · "+scopeLabel();
+    var list=$("#elist"); list.innerHTML="";
+    var mx=Math.max.apply(null,A.rows.map(function(r){return r.mae}))||1;
+    A.rows.forEach(function(r,i){ var col=maeColor(r.mae);
+      // contextualise the projection: "last poll" calls differ in age (publication blackout in the
+      // final days), so show how far from election day each firm's call was made
+      var sub = state.metric==="last" ? "last poll "+Math.round((ms(cyc.election)-ms(r.last))/DAY)+"d before election"
+              : state.metric==="elecday" ? "exit poll"
+              : r.n+(r.n===1?" poll":" polls")+(state.metric==="month"?" in final 30d":"");
+      list.appendChild(elc("div","rank",'<div class="pos">'+(i+1)+'</div><div class="nm">'+r.f+
+        '<br><small>'+sub+'</small></div><div class="bar"><i style="width:'+Math.round(r.mae/mx*100)+
+        '%;background:'+col+'"></i></div><div class="mae" style="color:'+col+'">'+r.mae.toFixed(2)+'</div>'));});
+    var parties=A.parties.slice(0,11), rows=A.rows, data=[],maxAbs=1;
+    rows.forEach(function(r,yi){ parties.forEach(function(pt,xi){ if(r.avgs[pt]==null) return;
+      var res=A.result[pt]||0, bias=Math.round((r.avgs[pt]-res)*10)/10; maxAbs=Math.max(maxAbs,Math.abs(bias));
+      data.push({value:[xi,yi,bias],raw:{f:r.f,pt:pt,avg:r.avgs[pt],res:res,bias:bias}}); }); });
+    chart.setOption(heatmapOption({
+      title:cyc.label+" — each pollster's "+metricLabel()+" vs. the result",
+      sub:"bias in seats · red = over-projected · blue = under · "+scopeLabel()+(state.accScope==="all"?" (missed lists = 0)":"")+" · "+(state.metric==="elecday"?"election-day (exit) poll":"election-day poll excluded"),
+      cols:parties, rows:rows.map(function(r){return r.f}), data:data, max:Math.max(2,Math.ceil(maxAbs)),
+      diverging:true, leftPad:150, rotate:36,
+      tip:function(p){var d=p.data.raw;return '<b>'+d.f+'</b> &nbsp;·&nbsp; '+d.pt+
+        '<br>'+metricLabel()+' &nbsp;<b>'+d.avg.toFixed(1)+'</b><br>result &nbsp;<b>'+d.res+
+        '</b><br>bias &nbsp;<b style="color:'+(d.bias>0?"#e2683b":"#3a9bd5")+'">'+(d.bias>0?"+":"")+d.bias+'</b> seats';}
+    }),{notMerge:true});
+  }
+
+  function renderAccuracyAll(){
+    setMetricHint();
+    // Raw seat errors aren't comparable across elections (some cycles were simply harder to poll),
+    // and firms were rated in different subsets of them — averaging raw MAEs would flatter a firm
+    // that skipped the hard cycles. So the overall ranking uses a SKILL score: each firm's error
+    // divided by that election's field-average error, averaged over the firm's elections.
+    // 1× = typical firm, lower = better. Heatmap cells still show the raw error in seats.
+    var pmap={}, cmean={};
+    D.cycles.forEach(function(c){
+      var rs=accuracyRows(c,state.metric).rows;
+      if(!rs.length) return;
+      cmean[c.id]=rs.reduce(function(s,r){return s+r.mae},0)/rs.length;
+      rs.forEach(function(r){ (pmap[r.f]=pmap[r.f]||{})[c.id]=r.mae; });
+    });
+    var rows=Object.keys(pmap).map(function(f){var m=pmap[f],ks=Object.keys(m);
+      return {f:f,m:m,k:ks.length,
+        avg:ks.reduce(function(s,k){return s+m[k]},0)/ks.length,
+        rel:ks.reduce(function(s,k){return s+m[k]/cmean[k]},0)/ks.length};});
+    var minE = state.metric==="elecday" ? 1 : 2;   // elecday: include one-time exit pollsters (Channel 14 / Direct Polls, 2022)
+    rows=rows.filter(function(r){return r.k>=minE;}).sort(function(a,b){return a.rel-b.rel;});
+    var best=rows[0];
+    kpiCards([
+      {v:rows.length,l:state.metric==="elecday"?"Exit pollsters":"Pollsters (≥2 elections)"},
+      {v:best?best.f:"–",l:"Most accurate ("+metricLabel()+")",small:true},
+      {v:best?best.rel.toFixed(2)+"×":"–",l:"Best skill (1× = field average)"},
+      {v:"5",l:"Elections"},
+      {v:"Nov 2018 – Nov 2022",l:"Period",small:true}
+    ]);
+    $(".events-card .eh b").textContent="Overall ranking";
+    $("#evCount").textContent="skill vs. the field, per election · "+scopeLabel();
+    var list=$("#elist"); list.innerHTML="";
+    var mx=Math.max.apply(null,rows.map(function(r){return r.rel}))||1;
+    rows.forEach(function(r,i){var col=skillColor(r.rel);
+      list.appendChild(elc("div","rank",'<div class="pos">'+(i+1)+'</div><div class="nm">'+r.f+
+        '<br><small>'+r.k+' elections · '+r.avg.toFixed(2)+' seats raw</small></div><div class="bar"><i style="width:'+Math.round(r.rel/mx*100)+
+        '%;background:'+col+'"></i></div><div class="mae" style="color:'+col+'">'+r.rel.toFixed(2)+'×</div>'));});
+    var cycles=D.cycles.map(function(c){return c.label}), data=[],maxV=1;
+    rows.forEach(function(r,yi){ D.cycles.forEach(function(c,xi){ var v=r.m[c.id]; if(v==null) return;
+      v=Math.round(v*100)/100; maxV=Math.max(maxV,v); data.push({value:[xi,yi,v]}); }); });
+    chart.setOption(heatmapOption({
+      title:"Pollster accuracy across all five elections ("+metricLabel()+")",
+      sub:"cells = average error in seats · green = more accurate · ranked by skill vs. each election's field average · "+scopeLabel()+" · "+(state.metric==="elecday"?"election-day (exit) polls":"election-day polls excluded"),
+      cols:cycles, rows:rows.map(function(r){return r.f}), data:data, max:Math.ceil(maxV),
+      diverging:false, leftPad:168, rotate:0, labelFmt:function(p){return p.value[2].toFixed(1);},
+      tip:function(p){var cid=D.cycles[p.value[0]].id, rel=cmean[cid]?p.value[2]/cmean[cid]:null;
+        return '<b>'+rows[p.value[1]].f+'</b><br>'+cycles[p.value[0]]+
+        ' &nbsp; avg error <b>'+p.value[2]+'</b> seats'+(rel!=null?' &nbsp;·&nbsp; <b>'+rel.toFixed(2)+'×</b> the field':'');}
+    }),{notMerge:true});
+  }
+
+  // ================= browse polls (wiki-style table) =================
+  function cycLabel(id){var c=D.cycles.find(function(x){return x.id===id});return c?c.label:id;}
+  function esc(s){return String(s==null?"":s).replace(/[&<>]/g,function(ch){return ch==="&"?"&amp;":ch==="<"?"&lt;":"&gt;";});}
+  function tableHTML(cyc, rows){
+    var cols=cyc.table.cols;
+    var h='<div class="tbl-scroll"><table class="ptbl"><thead><tr>'+
+      '<th class="c0">Date</th><th class="c1">Polling firm</th>';
+    cols.forEach(function(col){ h+='<th style="border-bottom:3px solid '+col.c+'">'+esc(col.n)+'</th>'; });
+    h+='</tr></thead><tbody>';
+    rows.forEach(function(r){
+      var maxv=-1,maxi=-1;
+      if(r.k!=="baseline") cols.forEach(function(col,i){ if(col.b) return;
+        var s=(r.v[i]||"").trim(), n=parseInt(s,10); if((""+n)===s && n>maxv){maxv=n;maxi=i;} });
+      h+='<tr class="'+r.k+'"><td class="c0">'+esc(r.dt)+'</td>'+
+         '<td class="c1">'+esc(r.f)+(r.pub?'<span class="pub">'+esc(r.pub)+'</span>':'')+'</td>';
+      cols.forEach(function(col,i){ var v=r.v[i]||""; var cls=col.b?"bloc":(/\(/.test(v)?"bt":"");
+        if(i===maxi) cls+=" lead";
+        h+='<td'+(cls.trim()?' class="'+cls.trim()+'"':'')+'>'+esc(v)+'</td>'; });
+      h+='</tr>';
+    });
+    return h+'</tbody></table></div>';
+  }
+  function renderBrowse(){
+    var q=(state.search||"").toLowerCase();
+    var cycles = state.cycle==="all" ? D.cycles : [D.cycles.find(function(c){return c.id===state.cycle;})];
+    var wrap=$("#browseWrap"); wrap.innerHTML="";
+    var totalPolls=0, fset={};
+    cycles.forEach(function(c){
+      var rows = q? c.table.rows.filter(function(r){return r.f.toLowerCase().indexOf(q)>=0;}) : c.table.rows;
+      rows.forEach(function(r){ if(r.k==="poll"){ totalPolls++; fset[r.f]=1; } });
+      if(state.cycle==="all"){
+        var np=c.table.rows.filter(function(r){return r.k==="poll";}).length;
+        wrap.insertAdjacentHTML("beforeend",'<div class="tsec">'+c.label+' <span>· '+c.knesset+' · '+np+' polls</span></div>');
+      }
+      wrap.insertAdjacentHTML("beforeend", rows.length? tableHTML(c, rows)
+        : '<div class="hint" style="padding:14px">No polls match “'+esc(state.search)+'”.</div>');
+    });
+    $("#browseHint").textContent=(state.cycle==="all"?"All elections":cycles[0].label)+
+      " · filter by election with the tabs above"+(q?" · filtered by “"+state.search+"”":"");
+    kpiCards([
+      {v:totalPolls,l:"Polls"+(q?" matching":"")},
+      {v:Object.keys(fset).length,l:"Pollsters"},
+      {v:state.cycle==="all"?"5":String(cycles[0].table.cols.filter(function(x){return !x.b;}).length),
+       l:state.cycle==="all"?"Elections":"Parties"},
+      {v:state.cycle==="all"?"All elections":cycles[0].label,l:"Election",small:true},
+      {v:state.cycle==="all"?"Nov 2018 – Nov 2022":(cycles[0].start?fmt(ms(cycles[0].start))+" – "+fmt(ms(cycles[0].end)):""),
+       l:"Period",small:true}
+    ]);
+  }
+
+  // ================= wiring =================
+  function refresh(ac){ ac=ac||active(); var fp=ac.polls.filter(function(p){return state.pollsters.has(p.f)});
+    renderKPIs(ac,fp); renderChart(ac); }
+  function resetForCycle(){
+    var ac=active();
+    state.focus=null; state.selPoll=null; state.selEvent=null; state.zoom=null;
+    state.visible=new Set(ac.major.filter(function(m){return ac.parties.some(function(p){return p.name===m})}));
+    if(state.visible.size===0) state.visible=new Set(ac.parties.slice(0,7).map(function(p){return p.name}));
+    state.pollsters=new Set(ac.pollsters);
+  }
+  function renderModeTabs(){
+    [].forEach.call(document.querySelectorAll("#modebar .mtab"),function(x){x.classList.toggle("on",x.dataset.m===state.mode);});
+  }
+  function syncHash(){ try{location.hash=(state.mode!=="trends"?state.mode+"/":"")+state.cycle+
+    (state.mode==="accuracy"&&state.metric!=="avg"?"/"+state.metric:"");}catch(e){} }
+  function renderAll(){
+    document.body.className="mode-"+state.mode;
+    renderModeTabs(); renderTabs();
+    if(state.mode==="browse"){ renderBrowse(); return; }
+    // On a chart-TYPE change (trends line/scatter <-> accuracy heatmap), rebuild the chart from
+    // scratch — see initChart(). clear()+setOption was not enough: a frame of the old chart could
+    // intermittently survive underneath the new one.
+    if(state.lastKind && state.lastKind!==state.mode) initChart();
+    state.lastKind=state.mode;
+    chart.resize();   // container was hidden in browse mode; restore size before drawing
+    if(state.mode==="accuracy"){ renderAccuracy(); return; }
+    var ac=active();
+    renderChips(ac); renderPollsters(ac); renderEvents(ac);
+    var fp=ac.polls.filter(function(p){return state.pollsters.has(p.f)});
+    renderKPIs(ac,fp); renderChart(ac);
+  }
+
+  // view segmented
+  $("#viewSeg").addEventListener("click",function(e){ var b=e.target.closest("button"); if(!b)return;
+    state.view=b.dataset.v; [].forEach.call(this.querySelectorAll("button"),function(x){x.classList.toggle("on",x===b)});
+    renderChart(active()); });
+  // accuracy metric segmented
+  $("#metricSeg").addEventListener("click",function(e){ var b=e.target.closest("button"); if(!b)return;
+    state.metric=b.dataset.k; [].forEach.call(this.querySelectorAll("button"),function(x){x.classList.toggle("on",x===b)});
+    syncHash(); renderAccuracy(); });
+  $("#scopeSeg").addEventListener("click",function(e){ var b=e.target.closest("button"); if(!b)return;
+    state.accScope=b.dataset.s; [].forEach.call(this.querySelectorAll("button"),function(x){x.classList.toggle("on",x===b)});
+    renderAccuracy(); });
+  // browse search
+  $("#pollSearch").addEventListener("input",function(){ state.search=this.value; renderBrowse(); });
+  // events toggle
+  $("#evToggle").addEventListener("change",function(){ state.showEvents=this.checked; renderChart(active()); });
+  // zoom reset (the zoom window itself is captured on the chart's "datazoom" event)
+  $("#zoomReset").addEventListener("click",function(){ state.zoom=null; renderChart(active()); });
+  // pollster menu open/close
+  $("#pollBtn").addEventListener("click",function(e){ e.stopPropagation(); $("#pollMenu").classList.toggle("open"); });
+  document.addEventListener("click",function(e){ if(!e.target.closest(".ctl")) $("#pollMenu").classList.remove("open"); });
+  // chip bulk
+  $("#chipAll").onclick=function(){var ac=active();state.visible=new Set(ac.parties.map(function(p){return p.name}));renderChips(ac);renderChart(ac);};
+  $("#chipNone").onclick=function(){state.visible=new Set();renderChips(active());renderChart(active());};
+  $("#chipMajor").onclick=function(){var ac=active();state.visible=new Set(ac.major.filter(function(m){return ac.parties.some(function(p){return p.name===m})}));renderChips(ac);renderChart(ac);};
+  window.addEventListener("resize",function(){ chart.resize(); });
+  [].forEach.call(document.querySelectorAll("#modebar .mtab"),function(btn){
+    btn.onclick=function(){ if(state.mode===btn.dataset.m) return; state.mode=btn.dataset.m; syncHash(); renderAll(); };
+  });
+
+  $("#foot").innerHTML="Display note: a few pure spelling variants are merged for clean lines "+
+    "(<code>B&amp;W</code>→Blue&nbsp;&amp;&nbsp;White, <code>Likud–Kulanu</code>→Likud, <code>YB</code>→Yisrael&nbsp;Beiteinu, "+
+    "<code>RZ/JH/OY</code>→Religious&nbsp;Zionist/Jewish&nbsp;Home/Otzma&nbsp;Yehudit). Trend = ±14-day moving average of polls. "+
+    "Seats are out of 120; values shown as <code>0</code> for parties polling below the 3.25% threshold. "+
+    "Built "+D.generated+" from the per-cycle combined CSVs.<br>"+
+    "Poll data &amp; campaign events: the English Wikipedia opinion-polling pages for the "+
+    '<a href="https://en.wikipedia.org/wiki/Opinion_polling_for_the_April_2019_Israeli_legislative_election">April 2019</a>, '+
+    '<a href="https://en.wikipedia.org/wiki/Opinion_polling_for_the_September_2019_Israeli_legislative_election">September 2019</a>, '+
+    '<a href="https://en.wikipedia.org/wiki/Opinion_polling_for_the_2020_Israeli_legislative_election">2020</a>, '+
+    '<a href="https://en.wikipedia.org/wiki/Opinion_polling_for_the_2021_Israeli_legislative_election">2021</a> and '+
+    '<a href="https://en.wikipedia.org/wiki/Opinion_polling_for_the_2022_Israeli_legislative_election">2022</a> elections, '+
+    'by their Wikipedia contributors, licensed <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC&nbsp;BY-SA&nbsp;4.0</a>. '+
+    'Charts: <a href="https://echarts.apache.org/">Apache ECharts</a> (Apache-2.0).';
+
+  // boot (deep-links: #2022  ·  #accuracy/2022  ·  #accuracy/2022/elecday)
+  (location.hash||"").replace("#","").split("/").forEach(function(x){
+    if(x==="accuracy"||x==="acc") state.mode="accuracy";
+    else if(x==="browse") state.mode="browse";
+    else if(x==="trends") state.mode="trends";
+    else if(x==="last"||x==="avg"||x==="elecday"||x==="month") state.metric=x;
+    else if(x==="exit"||x==="eday") state.metric="elecday";
+    else if(x==="all"||D.cycles.some(function(c){return c.id===x})) state.cycle=x;
+  });
+  resetForCycle(); renderAll();
+})();
+</script>
+</body>
+</html>
