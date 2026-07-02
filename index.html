@@ -166,6 +166,13 @@
   body.mode-accuracy .accnote{display:block}
   .accnote b{color:var(--muted)}
   .accnote i{color:#aebccd;font-style:normal;font-weight:600}
+  /* trends: pollster-weighting toggle + note */
+  .whylink{color:var(--accent);cursor:pointer;font-size:11px;margin-left:3px;font-weight:600}
+  .wtnote{display:none;margin:-4px 0 14px;color:var(--muted2);font-size:11.5px;line-height:1.65;
+    background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid var(--border);
+    border-radius:var(--r);padding:11px 15px;max-width:900px}
+  .wtnote.show{display:block}
+  .wtnote b{color:var(--muted)} .wtnote i{color:#aebccd;font-style:normal;font-weight:600}
   @media(max-width:1080px){.main{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}#chart{height:460px}
     .events-card{max-height:380px}}
 
@@ -252,9 +259,11 @@
       <div class="menu" id="pollMenu"></div>
     </div>
     <label class="switch"><input type="checkbox" id="evToggle" checked> Events</label>
+    <label class="switch"><input type="checkbox" id="wtToggle"> Discount house effects (⅓)</label><span class="whylink" id="wtWhy">why?</span>
     <button class="btn" id="zoomReset" title="Show the full period">Reset zoom</button>
     <span class="hint" id="zoomHint">scroll to zoom · drag to pan</span>
   </div>
+  <div class="wtnote trends-only" id="wtNote"><b>Why discount some pollsters?</b> A few firms show a large, one-directional <i>house effect</i> rather than random scatter. Over 2022–2026, <b>Channel 14 / Shlomo Filber</b> (with its <b>Direct Polls</b> arm) put the Netanyahu bloc at ~62 seats versus ~51 for every other pollster — an <b>~11-seat</b> gap — and showed Religious Zionism above the electoral threshold in <b>100%</b> of its polls vs ~55% elsewhere. This view weights Filber and Direct Polls — plus <b>Tzuriel Sharon</b> (i24), a brand-new firm with no track record yet — at <b>one-third</b>, so a single house can't steer the trend line. Toggle it off to count every poll equally. <i>(HaMadad / המדד, Channel 13's own poll, is a new but legitimate firm — it counts at full weight.)</i></div>
 
   <div class="card chips-card trends-only">
     <div class="cap"><span>Parties — click to toggle</span><span><a id="chipAll">all</a> · <a id="chipMajor">major</a> · <a id="chipNone">none</a></span></div>
@@ -305,7 +314,10 @@
   function fmt(t){var d=new Date(t);return d.getUTCDate()+" "+MON[d.getUTCMonth()]+" "+String(d.getUTCFullYear()).slice(2);}
   function fmtFull(t){var d=new Date(t);return d.getUTCDate()+" "+MON[d.getUTCMonth()]+" "+d.getUTCFullYear();}
 
-  var state = { mode:"trends", cycle:"all", view:"both", showEvents:true, visible:new Set(), pollsters:new Set(),
+  // Firms held at 1/3 weight in the "discount house effects" trend view (Channel-14/Filber operation
+  // + the brand-new i24 pollster Sharon). HaMadad is deliberately NOT here — legit, full weight.
+  var DISCOUNT_POLLSTERS = new Set(["Shlomo Filber","Direct Polls","Tzuriel Sharon"]);
+  var state = { mode:"trends", cycle:"all", view:"both", showEvents:true, discount:false, visible:new Set(), pollsters:new Set(),
                 focus:null, zoom:null, metric:"avg", accScope:"seated", selPoll:null, selEvent:null, search:"", lastKind:null };
   // One shared container hosts both the cartesian "trends" chart and the "accuracy" heatmap.
   // Renderer is SVG, not canvas: on some GPU/driver combos the canvas wasn't reliably cleared
@@ -379,8 +391,10 @@
     xs.forEach(function(x){
       if(prev!=null && x-prev>GAP) out.push([(prev+x)/2, null]);   // null y -> ECharts breaks the line here
       var s=0,n=0;
-      for(var i=0;i<pts.length;i++){ if(Math.abs(pts[i][0]-x)<=W){s+=pts[i][1];n++;} }
-      out.push([x, Math.round((s/n)*10)/10]);
+      for(var i=0;i<pts.length;i++){ if(Math.abs(pts[i][0]-x)<=W){
+        var w=(state.discount && DISCOUNT_POLLSTERS.has(pts[i][2]))?0.33:1;   // house-effect down-weight
+        s+=pts[i][1]*w; n+=w;} }
+      out.push([x, n? Math.round((s/n)*10)/10 : null]);
       prev=x;
     });
     return out;
@@ -481,7 +495,7 @@
 
     ac.parties.forEach(function(p){
       if(!state.visible.has(p.name)) return;
-      var pts=(g[p.name]||[]).map(function(a){return [a[0],a[1]]});
+      var pts=(g[p.name]||[]).map(function(a){return [a[0],a[1],a[2]]});   // [x, seats, pollster] — pollster used for weighting
       if(!pts.length) return;
       if(state.view!=="trend"){
         series.push({name:p.name,type:"scatter",symbolSize:state.view==="polls"?6:4.5,
@@ -903,6 +917,9 @@
   $("#pollSearch").addEventListener("input",function(){ state.search=this.value; renderBrowse(); });
   // events toggle
   $("#evToggle").addEventListener("change",function(){ state.showEvents=this.checked; renderChart(active()); });
+  // house-effect down-weight toggle + its explainer
+  $("#wtToggle").addEventListener("change",function(){ state.discount=this.checked; renderChart(active()); });
+  $("#wtWhy").addEventListener("click",function(e){ e.preventDefault(); e.stopPropagation(); $("#wtNote").classList.toggle("show"); });
   // zoom reset (the zoom window itself is captured on the chart's "datazoom" event)
   $("#zoomReset").addEventListener("click",function(){ state.zoom=null; renderChart(active()); });
   // touch screens: vertical swipes scroll the page (touch-action pan-y above), horizontal drags
@@ -939,6 +956,7 @@
     '<a href="https://en.wikipedia.org/wiki/Opinion_polling_for_the_2021_Israeli_legislative_election">2021</a> and '+
     '<a href="https://en.wikipedia.org/wiki/Opinion_polling_for_the_2022_Israeli_legislative_election">2022</a> elections, '+
     'by their Wikipedia contributors, licensed <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC&nbsp;BY-SA&nbsp;4.0</a>. '+
+    'The 2026 cycle is compiled from the companion polls-main tracker. '+
     'Charts: <a href="https://echarts.apache.org/">Apache ECharts</a> (Apache-2.0).';
 
   // boot (deep-links: #2022  ·  #accuracy/2022  ·  #accuracy/2022/elecday)
