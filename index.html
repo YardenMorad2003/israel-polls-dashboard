@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Israeli Election Polling 2019–2022</title>
+<title>Israeli Election Polling 2019–2026</title>
 <style>
   :root{
     --bg:#0c1016; --bg2:#11161f; --card:#141b26; --card2:#0f1620;
@@ -207,10 +207,10 @@
 <div class="wrap">
   <div class="header">
     <div>
-      <h1>The Israeli Polling Saga · 2019–2022</h1>
-      <div class="sub">Seat-projection polls across five elections (21st–25th Knesset), with campaign events annotated.</div>
+      <h1>The Israeli Polling Saga · 2019–2026</h1>
+      <div class="sub">Seat-projection polls across six cycles (21st–26th Knesset); five completed elections scored, plus the live 2026 run-up.</div>
     </div>
-    <div class="brandmark">604 polls · 117 events · 5 cycles<br>source: Wikipedia opinion-polling pages</div>
+    <div class="brandmark">698 polls · 118 events · 6 cycles<br>source: Wikipedia opinion-polling pages</div>
   </div>
 
   <div class="modebar" id="modebar">
@@ -350,7 +350,7 @@
         else pm.get(p.name).peak=Math.max(pm.get(p.name).peak,p.peak); });
     });
     var parties=[...pm.values()].sort(function(a,b){return b.peak-a.peak});
-    return {id:"all",label:"All cycles",knesset:"21st–25th Knesset",polls:polls,events:events,parties:parties,
+    return {id:"all",label:"All cycles",knesset:"21st–26th Knesset",polls:polls,events:events,parties:parties,
       pollsters:[...ps].sort(),major:D.allDefault,
       elections:D.cycles.map(function(c){return {date:c.election,label:c.label}})};
   }
@@ -389,7 +389,7 @@
   // ================= renders =================
   function renderTabs(){
     var t=$("#tabs"); t.innerHTML="";
-    var tabs=[{id:"all",label:"All cycles",sub:"2018 – 2022"}].concat(D.cycles.map(function(c){
+    var tabs=[{id:"all",label:"All cycles",sub:"2018 – 2026"}].concat(D.cycles.map(function(c){
       return {id:c.id,label:c.label,sub:c.knesset};}));
     tabs.forEach(function(o){
       var b=elc("div","tab"+(state.cycle===o.id?" active":""),o.label+"<small>"+o.sub+"</small>");
@@ -404,7 +404,7 @@
     var parties=new Set(fpolls.map(function(p){return p.p}));
     var span = ac.start? (fmt(ms(ac.start))+" – "+fmt(ms(ac.end))) :
       (fmt(ms(D.cycles[0].start))+" – "+fmt(ms(D.cycles[D.cycles.length-1].end)));
-    if(state.cycle==="all"){ span = "Nov 2018 – Nov 2022"; }
+    if(state.cycle==="all"){ span = "Nov 2018 – Jul 2026"; }
     var k=[
       {v:distinctPolls(fpolls), l:"Polls"},
       {v:ac.pollsters.length, l:"Pollsters"},
@@ -497,7 +497,7 @@
 
     // election markers + events on a transparent carrier series
     var marks=[];
-    ac.elections.forEach(function(e){
+    ac.elections.forEach(function(e){ if(!e.date) return;   // in-progress cycle (e.g. 2026): no election yet, no marker
       marks.push({xAxis:ms(e.date),lineStyle:{color:"#5b6b80",width:1.4,type:"solid",opacity:.85},
         label:{show:true,formatter:e.label,color:"#9fb3cc",fontSize:10.5,position:"insideEndTop",rotate:0,fontWeight:600},
         emphasis:{disabled:true}});
@@ -706,6 +706,19 @@
     if(state.cycle==="all") return renderAccuracyAll();
     setMetricHint();
     var cyc=D.cycles.find(function(c){return c.id===state.cycle});
+    if(!cyc.result || !Object.keys(cyc.result).length){   // in-progress cycle: no result to score against
+      kpiCards([{v:"—",l:"Pollsters rated"},{v:"pending",l:"Accuracy",small:true},
+        {v:"—",l:"Best error (seats)"},{v:"—",l:"Mean error (seats)"},{v:cyc.parties.length,l:"Lists polled"}]);
+      $(".events-card .eh b").textContent="Accuracy ranking";
+      $("#evCount").textContent=cyc.label+" · election pending";
+      $("#elist").innerHTML='<div class="rank"><div class="nm">Accuracy scoring unlocks after the '+cyc.knesset+
+        ' election.<br><small>No result to score against yet — this cycle shows polling <b>trends</b> only.</small></div></div>';
+      chart.setOption({title:{text:"Accuracy pending",subtext:"available after the "+cyc.knesset+
+        " election — trends only for now",left:"center",top:"middle",
+        textStyle:{color:"#9fb3cc",fontSize:18},subtextStyle:{color:"#6b7c93",fontSize:13}},
+        xAxis:{show:false},yAxis:{show:false},series:[]},{notMerge:true});
+      return;
+    }
     var A=accuracyRows(cyc,state.metric);
     var best=A.rows[0], avg=A.rows.reduce(function(s,r){return s+r.mae},0)/(A.rows.length||1);
     kpiCards([
@@ -838,7 +851,7 @@
       {v:state.cycle==="all"?"5":String(cycles[0].table.cols.filter(function(x){return !x.b;}).length),
        l:state.cycle==="all"?"Elections":"Parties"},
       {v:state.cycle==="all"?"All elections":cycles[0].label,l:"Election",small:true},
-      {v:state.cycle==="all"?"Nov 2018 – Nov 2022":(cycles[0].start?fmt(ms(cycles[0].start))+" – "+fmt(ms(cycles[0].end)):""),
+      {v:state.cycle==="all"?"Nov 2018 – Jul 2026":(cycles[0].start?fmt(ms(cycles[0].start))+" – "+fmt(ms(cycles[0].end)):""),
        l:"Period",small:true}
     ]);
   }

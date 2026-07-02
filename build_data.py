@@ -18,6 +18,8 @@ CYCLES = [
     {"id": "2020",  "dir": "israel-polls-2020",  "label": "2020",          "knesset": "23rd Knesset", "election": "2020-03-02"},
     {"id": "2021",  "dir": "israel-polls-2021",  "label": "2021",          "knesset": "24th Knesset", "election": "2021-03-23"},
     {"id": "2022",  "dir": "israel-polls-2022",  "label": "2022",          "knesset": "25th Knesset", "election": "2022-11-01"},
+    # In-progress cycle: no election held yet, so no result → trends only (accuracy scoring stays N/A).
+    {"id": "2026",  "dir": "israel-polls-2026",  "label": "2026",          "knesset": "26th Knesset", "election": ""},
 ]
 
 # Display-only aliases: pure spelling/abbreviation variants of the SAME party (safe merges).
@@ -65,6 +67,9 @@ COLORS = {
     "URWP": "#b5651d", "Religious Zionist": "#8b1a1a", "RZP-OY": "#8b1a1a",
     "Otzma Yehudit": "#b71c1c", "Otzma": "#b71c1c", "Zehut": "#ff8c1a",
     "Jewish Home–NU": "#cf7a1e", "JH–NU": "#cf7a1e", "NU": "#c98a3a", "New Economic": "#9c8f2e",
+    # 26th Knesset (2026) new lists
+    "Bennett": "#17becf", "Beyachad": "#6a51a3", "Yashar": "#e6550d",
+    "United Arab List": "#2e8b57", "The Democrats": "#d94f6a", "Reservists": "#8a9a5b",
 }
 PALETTE = ["#8e7cc3", "#76a5af", "#c27ba0", "#a2c4c9", "#d5a6bd", "#b6d7a8",
            "#ffd966", "#a4c2f4", "#f9cb9c", "#d9d2e9", "#b4a7d6", "#ea9999"]
@@ -166,7 +171,7 @@ for c in CYCLES:
         all_events.append({**e, "c": c["id"]})
 
 data = {
-    "generated": "2026-06-06",
+    "generated": "2026-07-02",
     "cycles": cycles_out,
     "aliases": ALIAS,
     "allDefault": ALL_DEFAULT,

@@ -1,10 +1,12 @@
-# The Israeli Polling Saga · 2019–2022
+# The Israeli Polling Saga · 2019–2026
 
-An interactive, **fully-offline** dashboard over opinion polling for the **five Israeli general
-elections of 2019–2022** (21st–25th Knesset). It chains every cycle's polls into one continuous
-2018 → 2022 timeline, scores how accurately each pollster called each election, and reproduces the
-Wikipedia poll tables — all in a **single self-contained HTML file** with no server, no build step,
-and no internet connection required.
+An interactive, **fully-offline** dashboard over opinion polling for the **five completed Israeli
+general elections of 2019–2022** (21st–25th Knesset) plus the **live run-up to the 26th Knesset
+(2026)**. It chains every cycle's polls into one continuous 2018 → 2026 timeline, scores how
+accurately each pollster called each *completed* election, and reproduces the Wikipedia poll tables
+— all in a **single self-contained HTML file** with no server, no build step, and no internet
+connection required. The 2026 cycle is polling-only for now: accuracy scoring unlocks once that
+election is held.
 
 Open `index.html` in any browser and it just works.
 
@@ -17,10 +19,17 @@ Open `index.html` in any browser and it just works.
 | March 2020     | 23rd | 2020-03-02 |  82 |  8 | 19 | 15 | 2019-10-03 → 2020-03-02 |
 | March 2021     | 24th | 2021-03-23 | 172 |  8 | 25 | 33 | 2020-03-12 → 2021-03-23 |
 | November 2022  | 25th | 2022-11-01 | 158 |  7 | 23 | 27 | 2021-04-05 → 2022-11-01 |
+| 2026 *(in progress)* | 26th | — | 566 | 12 | 19 | 13 | 2022-12-23 → 2026-07-01 |
 
-**Totals:** 604 polls · 117 campaign events · 18 distinct pollsters · 53 lists · 5 elections.
-Each cycle's polling begins within days/weeks of the previous result, so the combined view is a
-near-continuous four-year record. Every election result sums to exactly **120 seats**.
+**Totals:** 1,170 polls · 130 campaign events · 28 distinct pollsters · 59 lists · 5 completed
+elections + the in-progress 2026 cycle. Each cycle's polling begins within days/weeks of the previous
+result, so the combined view is a near-continuous **eight-year** record (2018 → 2026). Every
+*completed* election result sums to exactly **120 seats**; the 2026 cycle has no result yet.
+
+> The 2026 cycle's polls come from the sibling `../polls-main` datasets (the FastAPI/React live
+> tracker): `polls.xlsx` (pre-Bennett scenario, through Dec 2024) spliced with `polls_bennet.xlsx`
+> (Bennett/Beyachad era). Party lines begin/end as parties actually form — e.g. Bennett's list from
+> late 2024, the Bennett–Lapid "Beyachad" merger and Eisenkot's "Yashar" from 2026.
 
 ---
 
@@ -191,8 +200,10 @@ Cycle ids: `2019a`, `2019b`, `2020`, `2021`, `2022`, `all`. Metric tokens: `avg`
 
 ### Sources
 
-Each election's **Wikipedia "Opinion polling for the … Israeli legislative election"** page is
-parsed into a per-cycle folder (`israel-polls-2019a`, `…2019b`, `…2020`, `…2021`, `…2022`):
+Each **completed** election's **Wikipedia "Opinion polling for the … Israeli legislative election"**
+page is parsed into a per-cycle folder (`israel-polls-2019a`, `…2019b`, `…2020`, `…2021`, `…2022`).
+The sixth cycle, `israel-polls-2026`, is instead built from the sibling `../polls-main` live-tracker
+datasets (26th-Knesset seat projections), emitted into the **same** CSV schema:
 
 - [Opinion polling for the April 2019 Israeli legislative election](https://en.wikipedia.org/wiki/Opinion_polling_for_the_April_2019_Israeli_legislative_election)
 - [Opinion polling for the September 2019 Israeli legislative election](https://en.wikipedia.org/wiki/Opinion_polling_for_the_September_2019_Israeli_legislative_election)
@@ -311,8 +322,8 @@ Plus the standing notes:
 ## Regenerating the data
 
 ```bash
-# from the project folder; needs Python 3 + pandas, with the five israel-polls-* source
-# folders present as siblings of this directory.
+# from the project folder; needs Python 3 + pandas, with the israel-polls-* source
+# folders (2019a–2022 + 2026) present as siblings of this directory.
 python build_data.py
 ```
 
@@ -356,5 +367,5 @@ overwrites `data.js`. Nothing else needs rebuilding — reload `index.html`.
 
 ---
 
-*Built from the per-cycle Wikipedia opinion-polling datasets. Data generated 2026-06-06; README current
-as of 2026-06-09.*
+*Built from the per-cycle Wikipedia opinion-polling datasets (2019–2022) + the polls-main live
+tracker (2026 cycle). Data generated 2026-07-02; README current as of 2026-07-02.*
