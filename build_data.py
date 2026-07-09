@@ -70,6 +70,10 @@ COLORS = {
     # 26th Knesset (2026) new lists
     "Bennett": "#17becf", "Beyachad": "#6a51a3", "Yashar": "#e6550d",
     "United Arab List": "#2e8b57", "The Democrats": "#d94f6a", "Reservists": "#8a9a5b",
+    # Hendel's Reservists + Tropper announced a joint run on 2026-07-07; themadad relabelled the
+    # column at that point. Same series, new name from the merger on — kept in the olive family
+    # so the successor line reads as continuous with Reservists.
+    "Tropper–Hendel": "#7a8f3c",
 }
 PALETTE = ["#8e7cc3", "#76a5af", "#c27ba0", "#a2c4c9", "#d5a6bd", "#b6d7a8",
            "#ffd966", "#a4c2f4", "#f9cb9c", "#d9d2e9", "#b4a7d6", "#ea9999"]
@@ -171,7 +175,7 @@ for c in CYCLES:
         all_events.append({**e, "c": c["id"]})
 
 data = {
-    "generated": "2026-07-02",
+    "generated": "2026-07-09",
     "cycles": cycles_out,
     "aliases": ALIAS,
     "allDefault": ALL_DEFAULT,

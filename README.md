@@ -28,8 +28,11 @@ result, so the combined view is a near-continuous **eight-year** record (2018 �
 
 > The 2026 cycle's polls come from the sibling `../polls-main` datasets (the FastAPI/React live
 > tracker): `polls.xlsx` (pre-Bennett scenario, through Dec 2024) spliced with `polls_bennet.xlsx`
-> (Bennett/Beyachad era). Party lines begin/end as parties actually form — e.g. Bennett's list from
-> late 2024, the Bennett–Lapid "Beyachad" merger and Eisenkot's "Yashar" from 2026.
+> (Bennett/Beyachad era), extended with polls fetched directly from the upstream aggregator
+> [themadad.com](https://themadad.com/allpolls/) (המדד). Party lines begin/end as parties actually
+> form — e.g. Bennett's list from late 2024, the Bennett–Lapid "Beyachad" merger and Eisenkot's
+> "Yashar" from 2026, and "Reservists" becoming "Tropper–Hendel" at their 2026-07-07 joint-run
+> announcement.
 
 ---
 
@@ -203,7 +206,8 @@ Cycle ids: `2019a`, `2019b`, `2020`, `2021`, `2022`, `all`. Metric tokens: `avg`
 Each **completed** election's **Wikipedia "Opinion polling for the … Israeli legislative election"**
 page is parsed into a per-cycle folder (`israel-polls-2019a`, `…2019b`, `…2020`, `…2021`, `…2022`).
 The sixth cycle, `israel-polls-2026`, is instead built from the sibling `../polls-main` live-tracker
-datasets (26th-Knesset seat projections), emitted into the **same** CSV schema:
+datasets (26th-Knesset seat projections) plus polls fetched from the upstream aggregator
+[themadad.com](https://themadad.com/allpolls/), emitted into the **same** CSV schema:
 
 - [Opinion polling for the April 2019 Israeli legislative election](https://en.wikipedia.org/wiki/Opinion_polling_for_the_April_2019_Israeli_legislative_election)
 - [Opinion polling for the September 2019 Israeli legislative election](https://en.wikipedia.org/wiki/Opinion_polling_for_the_September_2019_Israeli_legislative_election)
@@ -368,4 +372,4 @@ overwrites `data.js`. Nothing else needs rebuilding — reload `index.html`.
 ---
 
 *Built from the per-cycle Wikipedia opinion-polling datasets (2019–2022) + the polls-main live
-tracker (2026 cycle). Data generated 2026-07-02; README current as of 2026-07-02.*
+tracker and themadad.com (2026 cycle). Data generated 2026-07-09; README current as of 2026-07-09.*
