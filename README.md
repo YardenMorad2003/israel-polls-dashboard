@@ -19,12 +19,16 @@ Open `index.html` in any browser and it just works.
 | March 2020     | 23rd | 2020-03-02 |  82 |  8 | 19 | 15 | 2019-10-03 → 2020-03-02 |
 | March 2021     | 24th | 2021-03-23 | 172 |  8 | 25 | 33 | 2020-03-12 → 2021-03-23 |
 | November 2022  | 25th | 2022-11-01 | 158 |  7 | 23 | 27 | 2021-04-05 → 2022-11-01 |
-| 2026 *(in progress)* | 26th | — | 566 | 12 | 19 | 13 | 2022-12-23 → 2026-07-01 |
+| 2026 *(in progress)* | 26th | — | 572 | 12 | 19 | 14 | 2022-12-23 → 2026-07-08 |
 
-**Totals:** 1,170 polls · 130 campaign events · 28 distinct pollsters · 59 lists · 5 completed
+**Totals:** 1,176 polls · 131 campaign events · 28 distinct pollsters · 59 lists · 5 completed
 elections + the in-progress 2026 cycle. Each cycle's polling begins within days/weeks of the previous
 result, so the combined view is a near-continuous **eight-year** record (2018 → 2026). Every
 *completed* election result sums to exactly **120 seats**; the 2026 cycle has no result yet.
+
+*(The 2026 cycle is live and grows as polls are published — see [Keeping the 2026 cycle
+current](#keeping-the-2026-cycle-current). Counts above are as of the `generated` date in `data.js`;
+the in-app header derives them from the data at runtime rather than hardcoding them.)*
 
 > The 2026 cycle's polls come from the sibling `../polls-main` datasets (the FastAPI/React live
 > tracker): `polls.xlsx` (pre-Bennett scenario, through Dec 2024) spliced with `polls_bennet.xlsx`
@@ -54,7 +58,7 @@ view by election; five **KPI cards** summarise whatever you're looking at.
 
 ### Cycle tabs
 
-`All cycles` (one continuous 2018 → 2022 timeline) or any single election (April 2019 … 2022). The
+`All cycles` (one continuous 2018 → 2026 timeline) or any single election (April 2019 … 2026). The
 tabs **filter every mode** and are the quickest way to **jump to a single campaign**: click `2021`
 to see just the 24th-Knesset run-up, then zoom/pan within it freely.
 
@@ -160,7 +164,7 @@ columns = each party's seats with **colour-coded headers**, plus the Gov/Opp (an
   `(x.x%)`, and each row's leading party is bold.
 - Sticky header + Date/firm columns; horizontal scroll for the full party set.
 - **Filter by election** with the cycle tabs; the **search box** filters by pollster.
-  *All elections* stacks all five tables.
+  *All elections* stacks all six tables.
 - The Browse table keeps the **faithful source labels** (including outlet/channel) — the display and
   analysis merges described below **do not** apply here.
 
@@ -192,10 +196,12 @@ The URL **hash** encodes mode + cycle (+ metric), and updates as you click:
 | `#accuracy/all/last` | Accuracy, all cycles, Last-poll metric |
 | `#browse/2020` | Browse, March 2020 |
 | `#browse/all` | Browse, all elections |
+| `#2026` | Trends, the live 26th-Knesset run-up |
 
-Cycle ids: `2019a`, `2019b`, `2020`, `2021`, `2022`, `all`. Metric tokens: `avg`, `month`, `last`,
-`elecday` (`exit`/`eday` also map to election-day). The Lists scope is a UI toggle and defaults to
-*Seated*.
+Cycle ids: `2019a`, `2019b`, `2020`, `2021`, `2022`, `2026`, `all`. Metric tokens: `avg`, `month`,
+`last`, `elecday` (`exit`/`eday` also map to election-day). The Lists scope is a UI toggle and
+defaults to *Seated*. `#accuracy/2026` is a no-op — that election has no result to score against, so
+the accuracy tab shows *pending* for it.
 
 ---
 
@@ -218,18 +224,19 @@ datasets (26th-Knesset seat projections) plus polls fetched from the upstream ag
 Each folder contains:
 
 - `seat_projections_combined_long.csv` — one row per (poll, party): `date_iso, date, pollster,
-  publisher, party, seats, period, source_file`.
+  publisher, party, seats, below_threshold_pct, value, period, source_file`. Only parties with
+  seats > 0 get a row.
 - `seat_projections_combined_wide.csv` — one row per poll with a column per party + bloc/total columns
   (`Gov.`, `Opp.`, `L/R/C/O`, `Others`); powers the Browse table.
 - `events.csv` — campaign timeline (`date_iso, date, event`).
 
 ### `build_data.py`
 
-Reads all five cycles, applies **display-only** and **analysis-only** normalisation (below), and emits
+Reads all six cycles, applies **display-only** and **analysis-only** normalisation (below), and emits
 `data.js` as `window.POLLDATA`. **Source CSVs are never modified.**
 
 ```bash
-python build_data.py     # regenerates data.js (~580 KB), prints a per-cycle summary
+python build_data.py     # regenerates data.js (~1.0 MB), prints a per-cycle summary
 ```
 
 ### Three normalisation regimes
@@ -256,12 +263,33 @@ python build_data.py     # regenerates data.js (~580 KB), prints a per-cycle sum
 - **Baseline / result rows** (e.g. "seats at dissolution", "election result") are regex-detected and
   excluded from the poll series (the result row is kept separately for scoring + the Browse highlight).
 - Seats are out of **120**; a value of **0** means the list polled **below the 3.25% threshold**.
+- **A cycle's poll count can be lower than its table-row count.** `nPolls` counts distinct
+  `(date, pollster)` pairs, so two polls published the same day by the same firm collapse into one.
+  In the 2026 cycle that is 572 vs 574 rows (Direct Polls 2024-04-07; Menachem Lazar 2025-09-30).
+  This is intended — the Browse table shows every row.
+
+### Party lineage: renames are dated, not retroactive
+
+Israeli lists merge, split and rebrand mid-campaign, and upstream sources tend to **relabel a whole
+column** when that happens — which silently rewrites history. This project instead treats a rename as
+an **event with a date**: rows before it keep the old name, rows from it onward use the new one. Each
+becomes its own series, so a chart never claims a party polled under a name it did not yet have.
+
+| Series | Before | From | Becomes |
+|---|---|---|---|
+| Bennett's list → joint list with Lapid | `Bennett` | 2026-04-26 | `Beyachad` |
+| Hendel's Reservists → joint run with Tropper | `Reservists` | 2026-07-07 | `Tropper–Hendel` |
+
+Both merger dates are also campaign **events**, so the rename is visible on the trend chart rather
+than buried in the data. A consequence worth knowing: because the Reservists stopped polling above
+threshold in Dec 2025 and the merger is later, `Tropper–Hendel` currently has a colour and an event
+but **no seats** — no column is created for a party with no data.
 
 ### `window.POLLDATA` schema
 
 ```js
 {
-  generated: "2026-06-06",
+  generated: "2026-07-09",
   allDefault: ["Likud","Shas","UTJ","Yisrael Beiteinu","Labor","Meretz","Joint List"],
   aliases: { … }, colors: { … },
   cycles: [{
@@ -336,12 +364,50 @@ overwrites `data.js`. Nothing else needs rebuilding — reload `index.html`.
 
 ---
 
+## Keeping the 2026 cycle current
+
+The five completed cycles are frozen. The 2026 cycle is **live** and is refreshed from
+[themadad.com/allpolls](https://themadad.com/allpolls/), which publishes every 26th-Knesset seat
+projection in one table. Four things about that source are worth knowing before touching it:
+
+1. **It rejects non-browser clients.** `curl`, `requests` and plain fetches get **HTTP 403** — the
+   table is only reachable by driving a real browser. All ~600 rows are server-rendered in the DOM
+   (pagination is client-side show/hide), so a single page load contains everything.
+2. **Map cells by index, preserving empty ones.** The collapsed page text drops empty cells and
+   silently misaligns the 16 sparse party columns. This is the single most likely way to corrupt a
+   refresh. Select the table by id (`#myTable`) — matching on its text can miss it before layout.
+3. **Verify with a hash, not a row count.** Canonicalise each row as
+   `[poll_num, ISO date, sample, outlet, pollster, …16 party cells]`, sort by `poll_num`, join fields
+   with `\x1f` and rows with `\x1e`, and take **FNV-1a 32-bit** over the UTF-8 bytes. Computing this
+   both in the page and over the written CSV proves the extraction is faithful rather than a lossy
+   reassembly of displayed text. Re-hashing previously-fetched polls also detects silent upstream
+   revisions.
+4. **The header can change under you.** Columns get *retro-relabelled* when parties merge (this is
+   how `Reservists` became `Tropper–Hendel`). A header hash that moves while the data hash holds means
+   a rename, not corruption — resolve it against the dated-rename table above, and check the column by
+   **codepoint** rather than by rendered glyph.
+
+Two further practical notes: the per-cycle CSVs are **UTF-8 with BOM and CRLF** (read `utf-8-sig`,
+write the same, or the whole file shows as modified); and the `period` column is a literal string on
+every row, so extending the window rewrites all of them, not just the new ones.
+
+### RTL text and tables
+
+Party names are Hebrew. Two adjacent Hebrew strings separated only by neutral characters (`|`, spaces)
+merge into a single right-to-left run, and a terminal or table renders them in **reversed visual
+order** — so column headers appear swapped over correct data. Use Latin transliterations in any table
+(`Yashar (Eisenkot)`, `Beyachad (Bennett+Lapid)`), or wrap each Hebrew cell in bidi isolates
+(`U+2068` … `U+2069`). When a column's identity is in doubt, check its **codepoints**, and confirm
+against an independent anchor (a known trend that would invert if the columns really were swapped).
+
+---
+
 ## Files
 
 | File | What it is |
 |------|------------|
 | `index.html` | The entire dashboard — HTML, CSS, and JS (uses ECharts). |
-| `data.js` | Generated data blob (`window.POLLDATA`), ~580 KB. |
+| `data.js` | Generated data blob (`window.POLLDATA`), ~1.0 MB. |
 | `echarts.min.js` | Vendored Apache ECharts **5.6.0** (Apache-2.0). |
 | `build_data.py` | Regenerates `data.js` from the per-cycle CSVs. |
 | `README.md` | This file. |
@@ -361,11 +427,15 @@ overwrites `data.js`. Nothing else needs rebuilding — reload `index.html`.
 
 ## Credits & data licence
 
-- **Poll data & campaign events** come from the English Wikipedia opinion-polling pages linked under
-  [Sources](#sources), written by their respective **Wikipedia contributors** and licensed under
-  [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). The derived data in this project
-  (`data.js` and the per-cycle CSVs it is built from) is a transformation of that content and is
-  shared under the same licence.
+- **Poll data & campaign events, 2019–2022 cycles** come from the English Wikipedia opinion-polling
+  pages linked under [Sources](#sources), written by their respective **Wikipedia contributors** and
+  licensed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). The derived data in
+  this project (`data.js` and the per-cycle CSVs it is built from) is a transformation of that content
+  and is shared under the same licence.
+- **Poll data, 2026 cycle** is compiled from the companion `polls-main` tracker and from
+  [themadad.com](https://themadad.com/allpolls/) (המדד), the Israeli aggregator that publishes the
+  26th-Knesset seat projections. The underlying polls are the work of the polling firms and the outlets
+  that commissioned them, each credited per-row in the Browse table (`pollster` + `publisher`).
 - **Charts:** [Apache ECharts](https://echarts.apache.org/) 5.6.0, vendored as `echarts.min.js`
   ([Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0)).
 
