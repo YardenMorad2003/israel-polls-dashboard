@@ -19,9 +19,9 @@ Open `index.html` in any browser and it just works.
 | March 2020     | 23rd | 2020-03-02 |  82 |  8 | 19 | 15 | 2019-10-03 → 2020-03-02 |
 | March 2021     | 24th | 2021-03-23 | 172 |  8 | 25 | 33 | 2020-03-12 → 2021-03-23 |
 | November 2022  | 25th | 2022-11-01 | 158 |  7 | 23 | 27 | 2021-04-05 → 2022-11-01 |
-| 2026 *(in progress)* | 26th | — | 572 | 12 | 19 | 14 | 2022-12-23 → 2026-07-08 |
+| 2026 *(in progress)* | 26th | — | 577 | 12 | 20 | 14 | 2022-12-23 → 2026-07-12 |
 
-**Totals:** 1,176 polls · 131 campaign events · 28 distinct pollsters · 59 lists · 5 completed
+**Totals:** 1,181 polls · 131 campaign events · 28 distinct pollsters · 60 lists · 5 completed
 elections + the in-progress 2026 cycle. Each cycle's polling begins within days/weeks of the previous
 result, so the combined view is a near-continuous **eight-year** record (2018 → 2026). Every
 *completed* election result sums to exactly **120 seats**; the 2026 cycle has no result yet.
@@ -88,6 +88,13 @@ toolbar) restores the full window.
   Beiteinu, Labor, Meretz, Joint List); single cycles default to that election's top lists.
 - **Pollster filter** — include/exclude individual polling firms.
 - **View modes** — `Trend + polls` / `Trend only` / `Polls only`.
+- **Blocs lens** — the `Parties | Blocs` toggle re-aggregates every poll into the two standing camps,
+  **right + haredi** vs **center-left-arab**, with a dashed 61-seat majority guide. Sides follow the
+  companion [elections dashboard](https://yardenmorad2003.github.io/election-dashboard/)'s convention:
+  from April 2019 on Yisrael Beiteinu — and in the 2021 cycle Yamina and New Hope — count on the
+  center-left-arab side, not right-haredi. Same-day same-firm scenario polls are averaged; poll-days
+  whose listed seats don't tally to ~120 (partial or scenario-merged rows, ~3%) are omitted. Deep
+  link: append `/blocs` (e.g. `#2026/blocs`).
 - **Events panel** (right) — the full campaign timeline, newest first. Click an event to **mark it
   gold on the chart** and highlight it; conversely, clicking an event line on the chart **scrolls to
   and highlights** it in this panel. The link is bidirectional.
@@ -197,6 +204,8 @@ The URL **hash** encodes mode + cycle (+ metric), and updates as you click:
 | `#browse/2020` | Browse, March 2020 |
 | `#browse/all` | Browse, all elections |
 | `#2026` | Trends, the live 26th-Knesset run-up |
+| `#2026/blocs` | Trends, 2026, blocs lens (right+haredi vs center-left-arab) |
+| `#all/blocs` | Trends, all cycles, blocs lens |
 
 Cycle ids: `2019a`, `2019b`, `2020`, `2021`, `2022`, `2026`, `all`. Metric tokens: `avg`, `month`,
 `last`, `elecday` (`exit`/`eday` also map to election-day). The Lists scope is a UI toggle and
@@ -265,7 +274,7 @@ python build_data.py     # regenerates data.js (~1.0 MB), prints a per-cycle sum
 - Seats are out of **120**; a value of **0** means the list polled **below the 3.25% threshold**.
 - **A cycle's poll count can be lower than its table-row count.** `nPolls` counts distinct
   `(date, pollster)` pairs, so two polls published the same day by the same firm collapse into one.
-  In the 2026 cycle that is 572 vs 574 rows (Direct Polls 2024-04-07; Menachem Lazar 2025-09-30).
+  In the 2026 cycle that is 577 vs 579 rows (Direct Polls 2024-04-07; Menachem Lazar 2025-09-30).
   This is intended — the Browse table shows every row.
 
 ### Party lineage: renames are dated, not retroactive

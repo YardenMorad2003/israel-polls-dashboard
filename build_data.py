@@ -85,6 +85,29 @@ SPECIAL_SET = {"Others", "Gov.", "Opp.", "L", "R", "C", "O"}   # bloc/total colu
 META_COLS = {"date_iso", "date", "pollster", "publisher", "period", "source_file"}
 ALL_DEFAULT = ["Likud", "Shas", "UTJ", "Yisrael Beiteinu", "Labor", "Meretz", "Joint List"]
 
+# ---- Bloc sides for the trends "Blocs" lens: right+haredi vs center-left-arab -------------
+# Follows the companion elections dashboard's bloc convention (same as its MCP server):
+# right_haredi = right + haredi; everything else (center, left, arab, opposition_right) counts
+# on the center-left-arab side. From K21 (April 2019) on Yisrael Beiteinu is opposition_right →
+# center-left-arab side in ALL six cycles here; in the 2021 (K24) cycle Yamina and New Hope are
+# opposition_right as well (the site's K24 convention — Bennett caveat applies). Kulanu is
+# classified right (K21 official-results bloc). Judgment calls for polled-only lists that never
+# won seats: Zehut/National Union/UJH variants → right; Shaked's late-2022 relabels (Zionist
+# Spirit / JH-Yamina lines) → right; Gesher, Telem, Israelis, New Economic, Derekh Eretz,
+# Tnufa → center-left-arab.
+RH_SIDE = {
+    "2019a": {"Likud", "UTJ", "Shas", "URWP", "Kulanu", "New Right", "Jewish Home", "Zehut"},
+    "2019b": {"Likud", "Shas", "UTJ", "Yamina", "New Right", "URWP", "Otzma Yehudit", "Zehut",
+              "Kulanu"},
+    "2020":  {"Likud", "Shas", "UTJ", "Yamina", "New Right", "NU", "UJH JH", "UJH Otzma", "UJH",
+              "JH–NU", "Otzma", "Otzma Yehudit"},
+    "2021":  {"Likud", "Shas", "UTJ", "Religious Zionist", "Otzma Yehudit-Noam", "Jewish Home",
+              "Otzma Yehudit"},
+    "2022":  {"Likud", "RZP-OY", "Shas", "UTJ", "Religious Zionist", "Otzma Yehudit",
+              "Zionist Spirit/Yamina", "JH/ Yamina", "Jewish Home", "Zionist Spirit"},
+    "2026":  {"Likud", "Shas", "UTJ", "Religious Zionist", "Otzma Yehudit"},
+}
+
 
 def canon(p):
     return ALIAS.get(p, p)
@@ -141,6 +164,10 @@ for c in CYCLES:
     parties = [{"name": p, "color": color_for(p, i), "result": result.get(p),
                 "peak": int(rank.get(p, 0))} for i, p in enumerate(order)]
     major = [p["name"] for p in parties[:9]]
+    sides = {p: ("rh" if p in RH_SIDE[c["id"]] else "cla") for p in order}
+    stale = RH_SIDE[c["id"]] - set(order)
+    if stale:
+        print(f"  [warn] {c['id']}: RH_SIDE names never polled >0 (unused): {sorted(stale)}")
 
     ev = pd.read_csv(os.path.join(d, "events.csv"), dtype=str, keep_default_na=False)
     events = [{"d": r.date_iso, "dl": r.date, "e": r.event} for r in ev.itertuples()]
@@ -150,7 +177,7 @@ for c in CYCLES:
     cyc = {
         "id": c["id"], "label": c["label"], "knesset": c["knesset"], "election": c["election"],
         "start": dates[0] if dates else "", "end": dates[-1] if dates else "",
-        "parties": parties, "major": major, "pollsters": pollsters,
+        "parties": parties, "major": major, "pollsters": pollsters, "sides": sides,
         "polls": polls, "events": events, "result": result,
         "nPolls": int(polls_df.groupby(["date_iso", "pollster"]).ngroups),
         "nPollsters": len(pollsters), "nEvents": len(events),
@@ -166,6 +193,11 @@ for c in CYCLES:
         kind = "result" if RESULT.search(ff) else ("baseline" if BASELINE.search(ff) else "poll")
         trows.append({"d": rec.get("date_iso", ""), "dt": rec.get("date", ""), "f": ff,
                       "pub": rec.get("publisher", ""), "k": kind, "v": [rec.get(cc, "") for cc in datacols]})
+    # Browse table shows newest first. Wikipedia-parsed cycles already arrive newest-first but the
+    # 2026 cycle is compiled oldest-first — normalise here: date desc, the result row above the
+    # same-day exit polls, dateless baseline rows sinking to the bottom. Stable, so same-day rows
+    # keep their source order.
+    trows.sort(key=lambda r: (r["d"], {"result": 2, "poll": 1, "baseline": 0}[r["k"]]), reverse=True)
     cyc["table"] = {"cols": tcols, "rows": trows}
 
     cycles_out.append(cyc)
@@ -175,7 +207,7 @@ for c in CYCLES:
         all_events.append({**e, "c": c["id"]})
 
 data = {
-    "generated": "2026-07-09",
+    "generated": "2026-07-13",
     "cycles": cycles_out,
     "aliases": ALIAS,
     "allDefault": ALL_DEFAULT,

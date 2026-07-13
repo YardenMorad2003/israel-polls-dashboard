@@ -249,6 +249,10 @@
   </div>
 
   <div class="toolbar trends-only">
+    <div class="seg" id="lensSeg">
+      <button data-l="parties" class="on">Parties</button>
+      <button data-l="blocs">Blocs</button>
+    </div>
     <div class="seg" id="viewSeg">
       <button data-v="both" class="on">Trend + polls</button>
       <button data-v="trend">Trend</button>
@@ -325,7 +329,7 @@
   // Firms held at 1/3 weight in the "discount house effects" trend view (Channel-14/Filber operation
   // + the brand-new i24 pollster Sharon). HaMadad is deliberately NOT here — legit, full weight.
   var DISCOUNT_POLLSTERS = new Set(["Shlomo Filber","Direct Polls","Tzuriel Sharon"]);
-  var state = { mode:"trends", cycle:"all", view:"both", showEvents:true, discount:false, visible:new Set(), pollsters:new Set(),
+  var state = { mode:"trends", cycle:"all", view:"both", lens:"parties", showEvents:true, discount:false, visible:new Set(), pollsters:new Set(),
                 focus:null, zoom:null, metric:"avg", accScope:"seated", selPoll:null, selEvent:null, search:"", lastKind:null };
   // One shared container hosts both the cartesian "trends" chart and the "accuracy" heatmap.
   // Renderer is SVG, not canvas: on some GPU/driver combos the canvas wasn't reliably cleared
@@ -363,7 +367,7 @@
   function allCycle(){
     var polls=[],events=[],pm=new Map(),ps=new Set();
     D.cycles.forEach(function(c){
-      c.polls.forEach(function(p){polls.push(p)});
+      c.polls.forEach(function(p){polls.push(Object.assign({c:c.id},p))});   // tag cycle id — the blocs lens resolves sides per cycle
       c.events.forEach(function(e){events.push(Object.assign({c:c.id},e))});
       c.pollsters.forEach(function(f){ps.add(f)});
       c.parties.forEach(function(p){ if(!pm.has(p.name)) pm.set(p.name,{name:p.name,color:p.color,peak:p.peak,result:null});
@@ -378,6 +382,50 @@
     if(state.cycle==="all") return allCycle();
     var c=D.cycles.find(function(x){return x.id===state.cycle});
     return Object.assign({},c,{elections:[{date:c.election,label:c.label}]});
+  }
+
+  // ---- blocs lens: aggregate each poll into the two standing camps ----
+  // Sides come from data.js (cycle.sides), following the companion elections dashboard's
+  // convention: right_haredi vs center-left-arab. From April 2019 on Yisrael Beiteinu — and in
+  // the 2021 cycle Yamina and New Hope — count on the center-left-arab side, not right-haredi.
+  var BLOCS=[{key:"rh",name:"Right–Haredi bloc",color:"#3d85c8"},
+             {key:"cla",name:"Center–Left–Arab bloc",color:"#d9576a"}];
+  function sidesFor(cid){ var c=D.cycles.find(function(x){return x.id===cid}); return (c&&c.sides)||{}; }
+  function blocCycle(ac){
+    var g={},order=[];
+    ac.polls.forEach(function(p){
+      var side=sidesFor(p.c||ac.id)[p.p]; if(!side) return;
+      var k=(p.c||ac.id)+"|"+p.d+"|"+p.f;
+      if(!g[k]){ g[k]={d:p.d,f:p.f,c:p.c,rh:0,cla:0}; order.push(k); }
+      g[k][side]+=p.s;
+    });
+    var polls=[],peak={rh:0,cla:0};
+    order.forEach(function(k){ var r=g[k], tot=r.rh+r.cla;
+      // two polls by the same firm on the same day collapse into one group — average them
+      // (seats sum to 120 per poll, so the multiple is recoverable from the group total).
+      // Groups that don't tally ~n×120 (partial polls listing only major lists, or messy
+      // scenario merges — ~3% of poll-days) would fake a bloc collapse: skip them.
+      var n=Math.max(1,Math.round(tot/120));
+      if(Math.abs(tot-n*120)>4) return;
+      BLOCS.forEach(function(b){ var v=Math.round(r[b.key]/n);
+        if(v>0){ polls.push({d:r.d,f:r.f,p:b.name,s:v,c:r.c}); if(v>peak[b.key])peak[b.key]=v; } }); });
+    var result={};
+    if(ac.result&&ac.sides){ BLOCS.forEach(function(b){ var s=0,any=false;
+      Object.keys(ac.result).forEach(function(pn){ if(ac.sides[pn]===b.key){ s+=ac.result[pn]; any=true; } });
+      if(any) result[b.key]=s; }); }
+    return Object.assign({},ac,{
+      parties:BLOCS.map(function(b){return {name:b.name,color:b.color,peak:peak[b.key],
+        result:(result[b.key]!=null?result[b.key]:null)};}),
+      major:BLOCS.map(function(b){return b.name}),
+      polls:polls});
+  }
+  function lensed(ac){ ac=ac||active(); return state.lens==="blocs"? blocCycle(ac) : ac; }
+  function defaultVisible(){
+    if(state.lens==="blocs") return new Set(BLOCS.map(function(b){return b.name}));
+    var ac=active();
+    var v=new Set(ac.major.filter(function(m){return ac.parties.some(function(p){return p.name===m})}));
+    if(v.size===0) v=new Set(ac.parties.slice(0,7).map(function(p){return p.name}));
+    return v;
   }
 
   // Full x extent (first → last poll) of the active selection. The axis is pinned to this
@@ -536,6 +584,9 @@
     }
     if(state.focus){ marks.push({xAxis:state.focus,lineStyle:{color:"#ffd479",width:1.7,type:"solid",opacity:.95},
       label:{show:false},emphasis:{disabled:true}}); }
+    if(state.lens==="blocs"){ marks.push({yAxis:61,lineStyle:{color:"#93a7c2",width:1.2,type:[6,4],opacity:.65},
+      label:{show:true,formatter:"61 — majority",color:"#9fb3cc",fontSize:10.5,position:"insideEndTop"},
+      emphasis:{disabled:true}}); }
     series.push({name:"__elections",type:"line",data:[],markLine:{symbol:["none","none"],silent:false,
       label:{show:true},lineStyle:{},data:marks},z:1});
     if(evMarks.length) series.push({name:"__events",type:"line",data:[],markLine:{symbol:["none","circle"],
@@ -880,19 +931,19 @@
 
   // ================= wiring =================
   function refresh(ac){ ac=ac||active(); var fp=ac.polls.filter(function(p){return state.pollsters.has(p.f)});
-    renderKPIs(ac,fp); renderChart(ac); }
+    renderKPIs(ac,fp); renderChart(lensed(ac)); }
   function resetForCycle(){
     var ac=active();
     state.focus=null; state.selPoll=null; state.selEvent=null; state.zoom=null;
-    state.visible=new Set(ac.major.filter(function(m){return ac.parties.some(function(p){return p.name===m})}));
-    if(state.visible.size===0) state.visible=new Set(ac.parties.slice(0,7).map(function(p){return p.name}));
+    state.visible=defaultVisible();
     state.pollsters=new Set(ac.pollsters);
   }
   function renderModeTabs(){
     [].forEach.call(document.querySelectorAll("#modebar .mtab"),function(x){x.classList.toggle("on",x.dataset.m===state.mode);});
   }
   function syncHash(){ try{location.hash=(state.mode!=="trends"?state.mode+"/":"")+state.cycle+
-    (state.mode==="accuracy"&&state.metric!=="avg"?"/"+state.metric:"");}catch(e){} }
+    (state.mode==="accuracy"&&state.metric!=="avg"?"/"+state.metric:"")+
+    (state.mode==="trends"&&state.lens==="blocs"?"/blocs":"");}catch(e){} }
   function renderAll(){
     document.body.className="mode-"+state.mode;
     renderModeTabs(); renderTabs();
@@ -904,16 +955,22 @@
     state.lastKind=state.mode;
     chart.resize();   // container was hidden in browse mode; restore size before drawing
     if(state.mode==="accuracy"){ renderAccuracy(); return; }
-    var ac=active();
-    renderChips(ac); renderPollsters(ac); renderEvents(ac);
+    var ac=active(), lac=lensed(ac);
+    $(".chips-card .cap span").textContent = state.lens==="blocs" ? "Blocs — click to toggle" : "Parties — click to toggle";
+    renderChips(lac); renderPollsters(ac); renderEvents(ac);
     var fp=ac.polls.filter(function(p){return state.pollsters.has(p.f)});
-    renderKPIs(ac,fp); renderChart(ac);
+    renderKPIs(ac,fp); renderChart(lac);
   }
 
+  // parties/blocs lens segmented
+  $("#lensSeg").addEventListener("click",function(e){ var b=e.target.closest("button"); if(!b)return;
+    if(state.lens===b.dataset.l) return;
+    state.lens=b.dataset.l; [].forEach.call(this.querySelectorAll("button"),function(x){x.classList.toggle("on",x===b)});
+    state.visible=defaultVisible(); syncHash(); renderAll(); });
   // view segmented
   $("#viewSeg").addEventListener("click",function(e){ var b=e.target.closest("button"); if(!b)return;
     state.view=b.dataset.v; [].forEach.call(this.querySelectorAll("button"),function(x){x.classList.toggle("on",x===b)});
-    renderChart(active()); });
+    renderChart(lensed()); });
   // accuracy metric segmented
   $("#metricSeg").addEventListener("click",function(e){ var b=e.target.closest("button"); if(!b)return;
     state.metric=b.dataset.k; [].forEach.call(this.querySelectorAll("button"),function(x){x.classList.toggle("on",x===b)});
@@ -924,12 +981,12 @@
   // browse search
   $("#pollSearch").addEventListener("input",function(){ state.search=this.value; renderBrowse(); });
   // events toggle
-  $("#evToggle").addEventListener("change",function(){ state.showEvents=this.checked; renderChart(active()); });
+  $("#evToggle").addEventListener("change",function(){ state.showEvents=this.checked; renderChart(lensed()); });
   // house-effect down-weight toggle + its explainer
-  $("#wtToggle").addEventListener("change",function(){ state.discount=this.checked; renderChart(active()); });
+  $("#wtToggle").addEventListener("change",function(){ state.discount=this.checked; renderChart(lensed()); });
   $("#wtWhy").addEventListener("click",function(e){ e.preventDefault(); e.stopPropagation(); $("#wtNote").classList.toggle("show"); });
   // zoom reset (the zoom window itself is captured on the chart's "datazoom" event)
-  $("#zoomReset").addEventListener("click",function(){ state.zoom=null; renderChart(active()); });
+  $("#zoomReset").addEventListener("click",function(){ state.zoom=null; renderChart(lensed()); });
   // touch screens: vertical swipes scroll the page (touch-action pan-y above), horizontal drags
   // pan the chart, and zooming is done with the slider — adjust the hint accordingly
   if(window.matchMedia && matchMedia("(pointer:coarse)").matches)
@@ -938,9 +995,9 @@
   $("#pollBtn").addEventListener("click",function(e){ e.stopPropagation(); $("#pollMenu").classList.toggle("open"); });
   document.addEventListener("click",function(e){ if(!e.target.closest(".ctl")) $("#pollMenu").classList.remove("open"); });
   // chip bulk
-  $("#chipAll").onclick=function(){var ac=active();state.visible=new Set(ac.parties.map(function(p){return p.name}));renderChips(ac);renderChart(ac);};
-  $("#chipNone").onclick=function(){state.visible=new Set();renderChips(active());renderChart(active());};
-  $("#chipMajor").onclick=function(){var ac=active();state.visible=new Set(ac.major.filter(function(m){return ac.parties.some(function(p){return p.name===m})}));renderChips(ac);renderChart(ac);};
+  $("#chipAll").onclick=function(){var ac=lensed();state.visible=new Set(ac.parties.map(function(p){return p.name}));renderChips(ac);renderChart(ac);};
+  $("#chipNone").onclick=function(){state.visible=new Set();renderChips(lensed());renderChart(lensed());};
+  $("#chipMajor").onclick=function(){var ac=lensed();state.visible=new Set(ac.major.filter(function(m){return ac.parties.some(function(p){return p.name===m})}));renderChips(ac);renderChart(ac);};
   // on a WIDTH change (rotation, window resize — not mobile URL-bar height jitter), re-render so
   // the heatmap's narrow/wide layout and the trends option are recomputed for the new size
   var rszT=null, lastW=window.innerWidth;
@@ -956,6 +1013,11 @@
     "(<code>B&amp;W</code>→Blue&nbsp;&amp;&nbsp;White, <code>Likud–Kulanu</code>→Likud, <code>YB</code>→Yisrael&nbsp;Beiteinu, "+
     "<code>RZ/JH/OY</code>→Religious&nbsp;Zionist/Jewish&nbsp;Home/Otzma&nbsp;Yehudit). Trend = ±14-day moving average of polls. "+
     "Seats are out of 120; values shown as <code>0</code> for parties polling below the 3.25% threshold. "+
+    "The <b>Blocs</b> lens sums each poll into right+haredi vs center-left-arab, following the companion "+
+    '<a href="https://yardenmorad2003.github.io/election-dashboard/">elections dashboard</a>’s convention: '+
+    "from April 2019 on Yisrael&nbsp;Beiteinu — and in the 2021 cycle Yamina and New&nbsp;Hope — count on the "+
+    "center-left-arab side, not right-haredi. Poll-days whose listed seats do not tally to ~120 "+
+    "(partial or scenario-merged rows, ~3%) are omitted from the bloc series. "+
     "Built "+D.generated+" from the per-cycle combined CSVs.<br>"+
     "Poll data &amp; campaign events: the English Wikipedia opinion-polling pages for the "+
     '<a href="https://en.wikipedia.org/wiki/Opinion_polling_for_the_April_2019_Israeli_legislative_election">April 2019</a>, '+
@@ -976,8 +1038,11 @@
     else if(x==="trends") state.mode="trends";
     else if(x==="last"||x==="avg"||x==="elecday"||x==="month") state.metric=x;
     else if(x==="exit"||x==="eday") state.metric="elecday";
+    else if(x==="blocs") state.lens="blocs";
     else if(x==="all"||D.cycles.some(function(c){return c.id===x})) state.cycle=x;
   });
+  if(state.lens==="blocs"){ var lb=document.querySelector('#lensSeg button[data-l="blocs"]');
+    [].forEach.call(document.querySelectorAll("#lensSeg button"),function(x){x.classList.toggle("on",x===lb)}); }
   resetForCycle(); renderAll();
 })();
 </script>
