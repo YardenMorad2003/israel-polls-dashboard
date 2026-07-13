@@ -79,6 +79,11 @@ toolbar) restores the full window.
 - **Trend lines** — each party's **±14-day moving average** over the raw poll dots. The line is
   **broken across gaps longer than 35 days** (e.g. a quiet pre-campaign stretch), so it never draws
   a misleading straight bridge over months with no polling.
+- **Thin-polling cues** — a confident-looking trend line can rest on very few polls, so the line's
+  **opacity tracks how many polls sit in its ±14-day window** (fully solid from 8 up), stretches
+  with **fewer than 3** polls in the window get a faint shaded *few polls* band (e.g. the cycle
+  start and the ~3-week polling pause after October 7), and the **tooltip shows the exact window
+  count** for the hovered date.
 - **Raw poll dots** — every individual poll, coloured by party.
 - **Election markers** — labelled vertical lines at each election day.
 - **Event lines** — faint dashed verticals for campaign events, each with a small dot at the top.

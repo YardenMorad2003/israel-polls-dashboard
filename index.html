@@ -445,15 +445,36 @@
     var xs=[...new Set(pts.map(function(p){return p[0]}))].sort(function(a,b){return a-b});
     var out=[],prev=null;
     xs.forEach(function(x){
-      if(prev!=null && x-prev>GAP) out.push([(prev+x)/2, null]);   // null y -> ECharts breaks the line here
-      var s=0,n=0;
+      if(prev!=null && x-prev>GAP) out.push([(prev+x)/2, null, 0]);   // null y -> ECharts breaks the line here
+      var s=0,n=0,cnt=0;
       for(var i=0;i<pts.length;i++){ if(Math.abs(pts[i][0]-x)<=W){
         var w=(state.discount && DISCOUNT_POLLSTERS.has(pts[i][2]))?0.33:1;   // house-effect down-weight
-        s+=pts[i][1]*w; n+=w;} }
-      out.push([x, n? Math.round((s/n)*10)/10 : null]);
+        s+=pts[i][1]*w; n+=w; cnt++;} }
+      // dim 2 = RAW window poll count (unweighted, even when discounting) — drives the
+      // thin-evidence fade (visualMap colorAlpha) and the tooltip's window-count line
+      out.push([x, n? Math.round((s/n)*10)/10 : null, cnt]);
       prev=x;
     });
     return out;
+  }
+
+  // ---- sparse-polling detection: stretches where the ±14-day trend window holds <3 polls ----
+  // Counts distinct poll-days (date|firm|cycle) so the parties and blocs lenses agree.
+  function sparseBands(fpolls){
+    var seen=new Set(), times=[];
+    fpolls.forEach(function(p){ var k=(p.c||"")+"|"+p.d+"|"+p.f;
+      if(!seen.has(k)){ seen.add(k); times.push(ms(p.d)); } });
+    if(times.length<2) return [];
+    times.sort(function(a,b){return a-b});
+    var W=14*DAY, bands=[], cur=null, lo=0, hi=0;
+    for(var t=times[0]; t<=times[times.length-1]; t+=DAY){
+      while(lo<times.length && times[lo]<t-W) lo++;
+      while(hi<times.length && times[hi]<=t+W) hi++;
+      if(hi-lo<3){ if(cur) cur[1]=t; else cur=[t,t]; }
+      else if(cur){ bands.push(cur); cur=null; }
+    }
+    if(cur) bands.push(cur);
+    return bands.filter(function(b){return b[1]-b[0]>=7*DAY});
   }
 
   // ================= renders =================
@@ -546,7 +567,7 @@
   function renderChart(ac){
     var fpolls = ac.polls.filter(function(p){return state.pollsters.has(p.f)});
     var g=group(fpolls);
-    var series=[], pcolor={};
+    var series=[], pcolor={}, trendIdx=[];
     ac.parties.forEach(function(p){ pcolor[p.name]=p.color; });
 
     ac.parties.forEach(function(p){
@@ -559,11 +580,20 @@
           data:(g[p.name]||[]).map(function(a){return {value:[a[0],a[1]],f:a[2],p:p.name}}),z:2});
       }
       if(state.view!=="polls"){
+        trendIdx.push(series.length);   // visualMap target: fade the line where the window is thin
         series.push({name:p.name,type:"line",smooth:.35,showSymbol:false,
           lineStyle:{color:p.color,width:2.4},
           itemStyle:{color:p.color},data:trend(pts),z:5,emphasis:{focus:"series"}});
       }
     });
+
+    // sparse-polling bands: shade stretches where the ±14-day window holds <3 polls,
+    // so a confident-looking trend line can't hide how little it rests on
+    var sb=sparseBands(fpolls);
+    if(sb.length) series.push({name:"__sparse",type:"line",data:[],silent:true,z:0,
+      markArea:{silent:true,itemStyle:{color:"#8fa3bd",opacity:.055},
+        label:{position:"insideTop",color:"#7b8ba1",fontSize:10,fontStyle:"italic"},
+        data:sb.map(function(b){return [{xAxis:b[0],name:(b[1]-b[0]>=21*DAY?"few polls":"")},{xAxis:b[1]}]})}});
 
     // election markers + events on a transparent carrier series
     var marks=[];
@@ -600,6 +630,10 @@
     var opt={
       backgroundColor:"transparent",
       animation:false,
+      // thin-evidence fade: trend-line alpha tracks the raw ±14-day window count (dim 2),
+      // fully solid from 8 polls up. Applies only to the trend lines, never the dots.
+      visualMap: trendIdx.length? [{show:false,type:"continuous",dimension:2,min:1,max:8,
+        seriesIndex:trendIdx,inRange:{colorAlpha:[0.28,1]}}] : [],
       grid:{left:46,right:18,top:24,bottom:64},
       // x-only zoom: wheel/pinch to zoom, drag to pan, slider below for coarse navigation.
       // filterMode "none" keeps off-window points so trend lines stay continuous at the edges.
@@ -628,7 +662,11 @@
             else if(p.seriesType==="line"){rows[p.seriesName]={c:p.color,v:v,trend:true};}
           });
           order.sort(function(a,b){return rows[b].v-rows[a].v});
-          var h='<div style="font-size:11px;color:#8a99ad;margin-bottom:5px">'+fmtFull(t)+'</div>';
+          var wc=null;
+          ps.forEach(function(p){ if(wc==null && p.seriesType==="line" && p.seriesName.indexOf("__")!==0 &&
+            p.data && p.data[2]!=null) wc=p.data[2]; });
+          var h='<div style="font-size:11px;color:#8a99ad;margin-bottom:5px">'+fmtFull(t)+
+            (wc!=null? ' · '+wc+' poll'+(wc===1?'':'s')+' in ±14d' : '')+'</div>';
           order.slice(0,14).forEach(function(n){var r=rows[n];
             h+='<div style="display:flex;justify-content:space-between;gap:14px;line-height:1.55">'+
                '<span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+r.c+
@@ -1013,6 +1051,9 @@
     "(<code>B&amp;W</code>→Blue&nbsp;&amp;&nbsp;White, <code>Likud–Kulanu</code>→Likud, <code>YB</code>→Yisrael&nbsp;Beiteinu, "+
     "<code>RZ/JH/OY</code>→Religious&nbsp;Zionist/Jewish&nbsp;Home/Otzma&nbsp;Yehudit). Trend = ±14-day moving average of polls. "+
     "Seats are out of 120; values shown as <code>0</code> for parties polling below the 3.25% threshold. "+
+    "Trend lines <b>fade where polling is thin</b> (alpha tracks the ±14-day window's poll count, fully "+
+    "solid from 8 polls) and shaded <i>few polls</i> bands mark stretches with fewer than 3 polls in that "+
+    "window — a smooth line there is interpolation, not evidence; the tooltip shows the exact count. "+
     "The <b>Blocs</b> lens sums each poll into right+haredi vs center-left-arab, following the companion "+
     '<a href="https://yardenmorad2003.github.io/election-dashboard/">elections dashboard</a>’s convention: '+
     "from April 2019 on Yisrael&nbsp;Beiteinu — and in the 2021 cycle Yamina and New&nbsp;Hope — count on the "+
