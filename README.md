@@ -19,9 +19,9 @@ Open `index.html` in any browser and it just works.
 | March 2020     | 23rd | 2020-03-02 |  82 |  8 | 19 | 15 | 2019-10-03 → 2020-03-02 |
 | March 2021     | 24th | 2021-03-23 | 172 |  8 | 25 | 33 | 2020-03-12 → 2021-03-23 |
 | November 2022  | 25th | 2022-11-01 | 158 |  7 | 23 | 27 | 2021-04-05 → 2022-11-01 |
-| 2026 *(in progress)* | 26th | — | 577 | 12 | 20 | 14 | 2022-12-23 → 2026-07-12 |
+| 2026 *(in progress)* | 26th | — | 578 | 12 | 20 | 14 | 2022-12-23 → 2026-07-13 |
 
-**Totals:** 1,181 polls · 131 campaign events · 28 distinct pollsters · 60 lists · 5 completed
+**Totals:** 1,182 polls · 131 campaign events · 28 distinct pollsters · 60 lists · 5 completed
 elections + the in-progress 2026 cycle. Each cycle's polling begins within days/weeks of the previous
 result, so the combined view is a near-continuous **eight-year** record (2018 → 2026). Every
 *completed* election result sums to exactly **120 seats**; the 2026 cycle has no result yet.
@@ -279,7 +279,7 @@ python build_data.py     # regenerates data.js (~1.0 MB), prints a per-cycle sum
 - Seats are out of **120**; a value of **0** means the list polled **below the 3.25% threshold**.
 - **A cycle's poll count can be lower than its table-row count.** `nPolls` counts distinct
   `(date, pollster)` pairs, so two polls published the same day by the same firm collapse into one.
-  In the 2026 cycle that is 577 vs 579 rows (Direct Polls 2024-04-07; Menachem Lazar 2025-09-30).
+  In the 2026 cycle that is 578 vs 580 rows (Direct Polls 2024-04-07; Menachem Lazar 2025-09-30).
   This is intended — the Browse table shows every row.
 
 ### Party lineage: renames are dated, not retroactive
@@ -456,4 +456,4 @@ against an independent anchor (a known trend that would invert if the columns re
 ---
 
 *Built from the per-cycle Wikipedia opinion-polling datasets (2019–2022) + the polls-main live
-tracker and themadad.com (2026 cycle). Data generated 2026-07-09; README current as of 2026-07-09.*
+tracker and themadad.com (2026 cycle). Data generated 2026-07-15; README current as of 2026-07-15.*
