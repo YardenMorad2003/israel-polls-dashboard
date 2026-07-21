@@ -207,7 +207,7 @@ for c in CYCLES:
         all_events.append({**e, "c": c["id"]})
 
 data = {
-    "generated": "2026-07-13",
+    "generated": "2026-07-21",
     "cycles": cycles_out,
     "aliases": ALIAS,
     "allDefault": ALL_DEFAULT,
