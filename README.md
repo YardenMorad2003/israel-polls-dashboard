@@ -19,7 +19,7 @@ Open `index.html` in any browser and it just works.
 | March 2020     | 23rd | 2020-03-02 |  82 |  8 | 19 | 15 | 2019-10-03 → 2020-03-02 |
 | March 2021     | 24th | 2021-03-23 | 172 |  8 | 25 | 33 | 2020-03-12 → 2021-03-23 |
 | November 2022  | 25th | 2022-11-01 | 158 |  7 | 23 | 27 | 2021-04-05 → 2022-11-01 |
-| 2026 *(in progress)* | 26th | — | 587 | 12 | 20 | 14 | 2022-12-23 → 2026-07-23 |
+| 2026 *(in progress)* | 26th | — | 593 | 12 | 20 | 14 | 2022-12-23 → 2026-07-27 |
 
 **Totals:** 1,189 polls · 131 campaign events · 28 distinct pollsters · 60 lists · 5 completed
 elections + the in-progress 2026 cycle. Each cycle's polling begins within days/weeks of the previous
