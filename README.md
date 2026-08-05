@@ -21,7 +21,7 @@ Open `index.html` in any browser and it just works.
 | November 2022  | 25th | 2022-11-01 | 158 |  7 | 23 | 27 | 2021-04-05 → 2022-11-01 |
 | 2026 *(in progress)* | 26th | 2026-10-27 | 601 | 13 | 20 | 15 | 2022-12-23 → 2026-08-04 |
 
-**Totals:** 1,189 polls · 131 campaign events · 28 distinct pollsters · 60 lists · 5 completed
+**Totals:** 1,205 polls · 132 campaign events · 28 distinct pollsters · 60 lists · 5 completed
 elections + the in-progress 2026 cycle. Each cycle's polling begins within days/weeks of the previous
 result, so the combined view is a near-continuous **eight-year** record (2018 → 2026). Every
 *completed* election result sums to exactly **120 seats**; the 2026 cycle has no result yet.
@@ -53,7 +53,7 @@ CSVs, see [Regenerating the data](#regenerating-the-data).
 
 ## The interface
 
-A **mode toggle** (top) switches between three views; a row of **cycle tabs** below it filters every
+A **mode toggle** (top) switches between five views; a row of **cycle tabs** below it filters every
 view by election; five **KPI cards** summarise whatever you're looking at.
 
 ### Cycle tabs
@@ -85,6 +85,13 @@ toolbar) restores the full window.
   start and the ~3-week polling pause after October 7), and the **tooltip shows the exact window
   count** for the hovered date.
 - **Raw poll dots** — every individual poll, coloured by party.
+- **±95% band** (toggle, on by default) — a shaded sampling-error ribbon around each trend line,
+  computed from **published sample sizes** where available (the 2026 cycle from Apr 2026 on, via
+  Wikipedia's Sample column; ~71 polls). Half-width = 1.96 × the SE of the ±14-day weighted mean,
+  with each poll's seat-scale σ = 120·√(p(1−p)/n). Only polls with a *known* n enter the SE (≥2
+  required, nothing imputed), and the band never bridges gaps. It shows **pure sampling error** —
+  shared/systematic pollster error is excluded, so true uncertainty is larger. Works in both the
+  parties and blocs lenses.
 - **Election markers** — labelled vertical lines at each election day.
 - **Event lines** — faint dashed verticals for campaign events, each with a small dot at the top.
   **Hover** to read the event; **click** the line or dot to jump to that event in the side panel.
@@ -109,7 +116,41 @@ filters; lines are drawn crisply (no shadow) for legibility at a glance.
 
 ---
 
-## Mode 2 · Pollster accuracy
+## Mode 2 · Final stretch
+
+Every cycle's polls re-based onto a shared **days-before-election** axis (final 120 days), so the
+live 2026 run-up can be read against how the five completed campaigns actually closed. Dots are
+individual polls, lines a ±7-day average, diamonds the results at E-day; day-of exit polls are
+excluded (they measure the vote, not the campaign). A gold dashed line marks where the live cycle
+currently stands (e.g. *T−84d*), and the side panel + KPIs answer the two standing questions: how
+much did each cycle move between this distance and election day, and did the majority side at this
+distance hold? Metric toggle: **Right–Haredi bloc** (with the 61-seat guide) or **largest-party
+lead**. The selected cycle tab highlights that cycle's line. Deep link: `#race/all`.
+
+---
+
+## Mode 3 · Preferred PM
+
+**"Who is more suitable to be prime minister?"** polling for **all six cycles**, parsed from each
+Wikipedia polling page's PM section (and, for 2026, the dedicated leadership-polling sister page).
+Two kinds of series share the view: **head-to-head pairs** (Netanyahu vs. Gantz / Lapid / Bennett /
+Sa'ar / Eisenkot …) and **multi-way preference** tables (*Various candidates* / the 2026 *Open
+question*), where respondents picked among several named candidates — a different question, kept as
+its own matchup rather than being mangled into pair numbers. A matchup picker lists the cycle's
+series with ≥3 polls, ordered by most recent activity; dots are polls, lines a ±21-day average,
+plus a dashed grey *neither/undecided* line where published. Rows in a multi-candidate table that
+only offered two names are folded into that pair's series (that is how April 2019's single wide
+table stores its Bibi–Gantz head-to-heads). PM preference and seat projections diverge — the 2026
+seat race is tied while some head-to-heads are not — and that tension is itself informative.
+Pollster names keep each source table's firm labels (Midgam, Kantar…), the raw record. Campaign
+events overlay as in Trends, with the same bidirectional panel linking. The view is **per
+campaign** — each cycle polled its own field of candidates, so this mode has **no All-cycles tab**;
+entering it from *All cycles* lands on the latest campaign with PM data (2026), which defaults to
+the **Netanyahu vs. Eisenkot** headline race. Deep link: `#leadership/2026` (alias `#pm`).
+
+---
+
+## Mode 4 · Pollster accuracy
 
 How each pollster's projection compared to the **actual election result**. Two independent toggles
 shape the calculation:
@@ -167,7 +208,7 @@ For each rated pollster, the per-list projection (per the chosen metric) is comp
 
 ---
 
-## Mode 3 · Browse polls
+## Mode 5 · Browse polls
 
 Every poll in **table form, like the Wikipedia pages**: rows = polls (date, polling firm + publisher),
 columns = each party's seats with **colour-coded headers**, plus the Gov/Opp (and bloc) totals.
@@ -211,6 +252,8 @@ The URL **hash** encodes mode + cycle (+ metric), and updates as you click:
 | `#2026` | Trends, the live 26th-Knesset run-up |
 | `#2026/blocs` | Trends, 2026, blocs lens (right+haredi vs center-left-arab) |
 | `#all/blocs` | Trends, all cycles, blocs lens |
+| `#race/all` | Final stretch (campaign clock), all cycles |
+| `#leadership/all` | Preferred PM head-to-heads (alias `#pm`) |
 
 Cycle ids: `2019a`, `2019b`, `2020`, `2021`, `2022`, `2026`, `all`. Metric tokens: `avg`, `month`,
 `last`, `elecday` (`exit`/`eday` also map to election-day). The Lists scope is a UI toggle and
@@ -320,7 +363,13 @@ but **no seats** — no column is created for a party with no data.
     table: {                                  // Browse: faithful source rows
       cols: [{ n, c, b }],                    // name, colour, isBloc
       rows: [{ d, dt, f, pub, k, v[] }]       // k = "poll" | "result" | "baseline"
-    }
+    },
+    sizes: { "date|firm": n },                // published sample sizes (2026 only, where known) —
+                                              //   drives the trends ±95% band; nothing is imputed
+    leadership: [{                            // preferred-PM head-to-heads (2026 only)
+      label, a, b,                            // "Netanyahu vs. Eisenkot", candidate names
+      polls: [{ d, f, pub, a, b, x }]         // date, firm, publisher, %A, %B, %neither+undecided
+    }]
   }]
 }
 ```
@@ -380,7 +429,17 @@ overwrites `data.js`. Nothing else needs rebuilding — reload `index.html`.
 
 ## Keeping the 2026 cycle current
 
-The five completed cycles are frozen. The 2026 cycle is **live** and is refreshed from
+The five completed cycles are frozen. **Since 29 Jul 2026 the maintained refresh source is
+Wikipedia's [2026 opinion-polling page](https://en.wikipedia.org/wiki/Opinion_polling_for_the_2026_Israeli_legislative_election)**
+(raw wikitext via `&action=raw` — themadad.com now geo-blocks non-Israeli IPs with a hard
+Cloudflare 403, even in a real browser). That page also supplies the per-poll **sample sizes**
+(the wide CSV's `Sample` column) and, via its
+[leadership-polling sister page](https://en.wikipedia.org/wiki/Leadership_opinion_polling_for_the_2026_Israeli_legislative_election),
+the **preferred-PM series** (`israel-polls-2026/leadership_polls.csv`). Translation conventions into
+this dataset (documented in `israel-polls-2026/README.md`): dates = fieldwork-end; Kantar → Dudi
+Hasid, Midgam/Ch12 → Mano Geva, "Zionist Home – The Reservists" → Tropper–Hendel, revived Blue &
+White (Gantz) → National Unity; Channel 13's 2026 polls stay **HaMadad**. The notes below describe
+the original themadad route, kept for the record should access return:
 [themadad.com/allpolls](https://themadad.com/allpolls/), which publishes every 26th-Knesset seat
 projection in one table. Four things about that source are worth knowing before touching it:
 

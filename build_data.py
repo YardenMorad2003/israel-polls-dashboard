@@ -82,7 +82,7 @@ PALETTE = ["#8e7cc3", "#76a5af", "#c27ba0", "#a2c4c9", "#d5a6bd", "#b6d7a8",
 # Non-poll rows to drop / detect.
 BASELINE = re.compile(r"(?:pre-election seats|seats at dissolution|current seats|outgoing knesset)", re.I)
 RESULT = re.compile(r"election result", re.I)
-SPECIAL_SET = {"Others", "Gov.", "Opp.", "L", "R", "C", "O"}   # bloc/total columns, not parties
+SPECIAL_SET = {"Others", "Gov.", "Opp.", "L", "R", "C", "O", "Sample"}   # bloc/total/meta columns, not parties
 META_COLS = {"date_iso", "date", "pollster", "publisher", "period", "source_file"}
 ALL_DEFAULT = ["Likud", "Shas", "UTJ", "Yisrael Beiteinu", "Labor", "Meretz", "Joint List"]
 
@@ -185,6 +185,43 @@ for c in CYCLES:
     }
     # Full wiki-style table (one row per poll, party + bloc columns, original cell values).
     wf = pd.read_csv(os.path.join(d, "seat_projections_combined_wide.csv"), dtype=str, keep_default_na=False)
+    # Per-poll sample sizes (2026 cycle only for now, harvested from Wikipedia's Sample column) —
+    # keyed "date|canonical pollster" to match the flat poll rows. Missing n → poll just gets no MOE.
+    if "Sample" in wf.columns:
+        cyc["sizes"] = {f"{r.date_iso}|{canon_pollster(r.pollster)}": int(r.Sample)
+                        for r in wf.itertuples() if r.Sample and r.date_iso}
+    # Preferred-PM polls (Wikipedia PM sections / the 2026 leadership sister page), one LONG-format
+    # file per cycle if present: matchup,date_iso,pollster,publisher,candidate,pct. Pair matchups
+    # ("A vs. B") and multi-way series ("Various candidates" / "Open question") share the shape:
+    # candidates ordered by overall mean, one aligned value vector per poll, no-preference summed
+    # into x. Candidate rows named in NOPREF are the "Neither/None/Undecided/Don't know" shares.
+    lp = os.path.join(d, "leadership_polls.csv")
+    if os.path.exists(lp):
+        NOPREF = {"Neither", "None", "Other", "Undecided", "Don't Know", "Don't know",
+                  "No one", "Not sure"}
+        ld = pd.read_csv(lp, dtype=str, keep_default_na=False)
+        mus = []
+        for mu, g in ld.groupby("matchup", sort=False):
+            pl, order = {}, []
+            for r in g.itertuples():
+                k = (r.date_iso, r.pollster, r.publisher)
+                if k not in pl:
+                    pl[k] = {}; order.append(k)
+                pl[k][r.candidate] = float(r.pct)
+            cands = {}
+            for k in order:
+                for cn, v in pl[k].items():
+                    if cn not in NOPREF:
+                        cands.setdefault(cn, []).append(v)
+            cl = sorted(cands, key=lambda cn: -sum(cands[cn]) / len(cands[cn]))
+            entries = []
+            for k in sorted(order):          # (date, firm, pub) tuples sort chronologically
+                v = pl[k]
+                x = sum(val for cn, val in v.items() if cn in NOPREF)
+                entries.append({"d": k[0], "f": canon_pollster(k[1]) if k[1] else "", "pub": k[2],
+                                "v": [v.get(cn) for cn in cl], "x": (round(x, 1) if x else None)})
+            mus.append({"label": mu, "cands": cl, "polls": entries})
+        cyc["leadership"] = mus
     datacols = [x for x in wf.columns if x not in META_COLS]
     tcols = [{"n": cc, "c": ("#5f6e82" if cc in SPECIAL_SET else color_for(canon(cc), j)),
               "b": cc in SPECIAL_SET} for j, cc in enumerate(datacols)]

@@ -38,10 +38,12 @@
   .mtab:hover{color:var(--ink)}
   .mtab.on{background:linear-gradient(180deg,#22324c,#172234);color:#fff;box-shadow:0 0 0 1px rgba(58,160,255,.22) inset}
   /* mode visibility: show controls only for their mode */
-  .toolbar.acc-only,.toolbar.browse-only{display:none}
+  .toolbar.acc-only,.toolbar.browse-only,.toolbar.race-only,.toolbar.lead-only{display:none}
   body:not(.mode-trends) .trends-only{display:none}
   body.mode-accuracy .toolbar.acc-only{display:flex}
   body.mode-browse .toolbar.browse-only{display:flex}
+  body.mode-race .toolbar.race-only{display:flex}
+  body.mode-leadership .toolbar.lead-only{display:flex}
   .lbl{color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em}
   .hint{color:var(--muted2);font-size:12px}
   .search{background:var(--card);border:1px solid var(--border);color:var(--ink);border-radius:10px;padding:9px 13px;
@@ -184,7 +186,7 @@
     .header{margin-bottom:12px;align-items:flex-start}
     .brandmark{text-align:left;font-size:10.5px}
     .modebar{display:flex;width:100%;padding:3px}
-    .mtab{flex:1;padding:8px 4px;font-size:12px}
+    .mtab{flex:1;padding:8px 2px;font-size:10.5px}
     .tabs{flex-wrap:nowrap;overflow-x:auto;gap:6px;margin-bottom:12px;padding-bottom:3px}
     .tab{padding:7px 11px;font-size:12.5px}
     .tab small{display:none}
@@ -222,6 +224,8 @@
 
   <div class="modebar" id="modebar">
     <button data-m="trends" class="mtab on">Polling trends</button>
+    <button data-m="race" class="mtab">Final stretch</button>
+    <button data-m="leadership" class="mtab">Preferred PM</button>
     <button data-m="accuracy" class="mtab">Pollster accuracy</button>
     <button data-m="browse" class="mtab">Browse polls</button>
   </div>
@@ -247,6 +251,19 @@
     <input id="pollSearch" class="search" placeholder="Filter by pollster…" autocomplete="off">
     <span class="hint" id="browseHint"></span>
   </div>
+  <div class="toolbar race-only">
+    <span class="lbl">Metric</span>
+    <div class="seg" id="raceSeg">
+      <button data-r="bloc" class="on">Right–Haredi bloc</button>
+      <button data-r="lead">Largest-party lead</button>
+    </div>
+    <span class="hint" id="raceHint"></span>
+  </div>
+  <div class="toolbar lead-only">
+    <span class="lbl">Matchup</span>
+    <div class="seg" id="muSeg"></div>
+    <span class="hint" id="muHint"></span>
+  </div>
 
   <div class="toolbar trends-only">
     <div class="seg" id="lensSeg">
@@ -264,6 +281,7 @@
     </div>
     <label class="switch"><input type="checkbox" id="evToggle" checked> Events</label>
     <label class="switch"><input type="checkbox" id="wtToggle"> Discount house effects (⅓)</label><span class="whylink" id="wtWhy">why?</span>
+    <label class="switch" title="±95% sampling-error band around the trend, from published sample sizes (2026 cycle, where available)"><input type="checkbox" id="moeToggle" checked> ±95% band</label>
     <button class="btn" id="zoomReset" title="Show the full period">Reset zoom</button>
     <span class="hint" id="zoomHint">scroll to zoom · drag to pan</span>
   </div>
@@ -329,8 +347,13 @@
   // Firms held at 1/3 weight in the "discount house effects" trend view (Channel-14/Filber operation
   // + the brand-new i24 pollster Sharon). HaMadad is deliberately NOT here — legit, full weight.
   var DISCOUNT_POLLSTERS = new Set(["Shlomo Filber","Direct Polls","Tzuriel Sharon"]);
-  var state = { mode:"trends", cycle:"all", view:"both", lens:"parties", showEvents:true, discount:false, visible:new Set(), pollsters:new Set(),
-                focus:null, zoom:null, metric:"avg", accScope:"seated", selPoll:null, selEvent:null, search:"", lastKind:null };
+  var state = { mode:"trends", cycle:"all", view:"both", lens:"parties", showEvents:true, discount:false, moe:true, visible:new Set(), pollsters:new Set(),
+                focus:null, zoom:null, metric:"avg", accScope:"seated", selPoll:null, selEvent:null, search:"", lastKind:null,
+                raceMetric:"bloc", matchup:null };
+  // Published sample sizes, merged across cycles (only 2026 carries them for now); a poll's date
+  // belongs to exactly one cycle, so "date|pollster" keys can't collide across cycles.
+  var SIZES={};
+  D.cycles.forEach(function(c){ if(c.sizes) Object.keys(c.sizes).forEach(function(k){SIZES[k]=c.sizes[k];}); });
   // One shared container hosts both the cartesian "trends" chart and the "accuracy" heatmap.
   // Renderer is SVG, not canvas: on some GPU/driver combos the canvas wasn't reliably cleared
   // between repaints, leaving stale frames behind (ghost charts under the heatmap, smeared trails
@@ -482,6 +505,9 @@
     var t=$("#tabs"); t.innerHTML="";
     var tabs=[{id:"all",label:"All cycles",sub:"2018 – 2026"}].concat(D.cycles.map(function(c){
       return {id:c.id,label:c.label,sub:c.knesset};}));
+    // Preferred PM is per-campaign — no All-cycles tab in that mode (renderAll coerces the
+    // cycle to a concrete one before we get here, so the active tab always exists).
+    if(state.mode==="leadership") tabs=tabs.filter(function(o){return o.id!=="all";});
     tabs.forEach(function(o){
       var b=elc("div","tab"+(state.cycle===o.id?" active":""),o.label+"<small>"+o.sub+"</small>");
       b.onclick=function(){ state.cycle=o.id; syncHash(); resetForCycle(); renderAll(); };
@@ -561,8 +587,35 @@
   // ================= chart =================
   function group(fpolls){
     var g={};
-    fpolls.forEach(function(p){ (g[p.p]=g[p.p]||[]).push([ms(p.d),p.s,p.f]); });
+    fpolls.forEach(function(p){ (g[p.p]=g[p.p]||[]).push([ms(p.d),p.s,p.f,p.d]); });
     return g;
+  }
+
+  // ---- ±95% sampling-error band around the trend line ----
+  // Half-width = 1.96 · SE of the ±14-day weighted mean, with each poll's seat-scale σ from its
+  // published sample size: σ = 120·√(p(1-p)/n), p = seats/120. Computed over the window's polls
+  // with a KNOWN n only (≥2 required, else no band at that point) — n is never imputed for the
+  // rest, so the band is slightly conservative where some polls lack a published size. Sampling
+  // error only: shared/systematic pollster error is NOT included, so true uncertainty is larger.
+  function moeBand(pts, W){
+    W=(W||14)*DAY;
+    var xs=[...new Set(pts.map(function(p){return p[0]}))].sort(function(a,b){return a-b});
+    var out=[], any=false;
+    xs.forEach(function(x){
+      var s=0,n=0, sw=0,sw2s2=0,k=0;
+      for(var i=0;i<pts.length;i++){ if(Math.abs(pts[i][0]-x)<=W){
+        var w=(state.discount && DISCOUNT_POLLSTERS.has(pts[i][2]))?0.33:1;
+        s+=pts[i][1]*w; n+=w;
+        var sz=SIZES[pts[i][3]+"|"+pts[i][2]];
+        if(sz){ var q=Math.min(.995,Math.max(.005,pts[i][1]/120));
+          var sg=120*Math.sqrt(q*(1-q)/sz);
+          sw+=w; sw2s2+=w*w*sg*sg; k++; }
+      } }
+      if(n>0 && k>=2){ var hw=1.96*Math.sqrt(sw2s2)/sw, m=s/n;
+        out.push([x, Math.max(0,m-hw), m+hw]); any=true; }
+      else out.push([x, null, null]);
+    });
+    return any? out : null;
   }
   function renderChart(ac){
     var fpolls = ac.polls.filter(function(p){return state.pollsters.has(p.f)});
@@ -586,6 +639,31 @@
           itemStyle:{color:p.color},data:trend(pts),z:5,emphasis:{focus:"series"}});
       }
     });
+
+    // ±95% sampling-error bands (see moeBand) — appended AFTER the party series so the
+    // visualMap's trendIdx indexes stay valid. Two stacked lines per contiguous run draw the
+    // ribbon. Runs are split so the stacked series NEVER contain nulls: stacked lines with long
+    // null stretches + smooth sent the SVG renderer into a multi-minute hang (observed on the
+    // blocs lens), and an areaStyle would bridge misleadingly across gaps anyway.
+    if(state.moe && state.view!=="polls"){
+      ac.parties.forEach(function(p){
+        if(!state.visible.has(p.name)) return;
+        var pts=g[p.name]; if(!pts||!pts.length) return;
+        var band=moeBand(pts); if(!band) return;
+        var runs=[],cur=null;
+        band.forEach(function(b){ if(b[1]==null){cur=null;return;} if(!cur){cur=[];runs.push(cur);} cur.push(b); });
+        runs.forEach(function(run,ri){
+          if(run.length<2) return;
+          series.push({name:"__moe_lo_"+p.name+ri,type:"line",stack:"__moe"+p.name+ri,smooth:.35,
+            showSymbol:false,silent:true,z:1,lineStyle:{opacity:0},
+            data:run.map(function(b){return [b[0],Math.round(b[1]*10)/10];})});
+          series.push({name:"__moe_"+p.name+ri,type:"line",stack:"__moe"+p.name+ri,smooth:.35,
+            showSymbol:false,silent:true,z:1,lineStyle:{opacity:0},
+            areaStyle:{color:p.color,opacity:.11},
+            data:run.map(function(b){return [b[0],Math.round((b[2]-b[1])*10)/10];})});
+        });
+      });
+    }
 
     // sparse-polling bands: shade stretches where the ±14-day window holds <3 polls,
     // so a confident-looking trend line can't hide how little it rests on
@@ -686,10 +764,13 @@
   // Select an event from EITHER the panel or a click on its chart line: mark it gold on the chart,
   // highlight the matching panel row + scroll it into view.
   function selectEvent(i){
-    var ac=active(), e=ac.events[i]; if(!e||!e.d) return;
+    // leadership mode lists the leadership cycle's events, not the all-cycles concat — resolve
+    // the index against the same cycle the panel was rendered from
+    var ac=(state.mode==="leadership" && leadCycle())||active(), e=ac.events[i]; if(!e||!e.d) return;
     state.selEvent=i; state.focus=ms(e.d);
     Object.keys(evRows).forEach(function(k){ evRows[k].classList.toggle("sel", +k===i); });
     if(evRows[i]) evRows[i].scrollIntoView({block:"nearest",behavior:"smooth"});
+    if(state.mode==="leadership"){ renderLeadership(); return; }
     // if the event sits outside the current zoom window, pan the window (same width) to centre it
     if(state.zoom){
       var ex=xExtent(ac), span=ex[1]-ex[0];
@@ -917,6 +998,278 @@
     }),{notMerge:true});
   }
 
+  // ================= final stretch (campaign clock) =================
+  // Every cycle's polls re-based onto a shared "days before election day" axis, so the live 2026
+  // run-up can be read against how the five completed campaigns actually closed. Day-of (exit)
+  // polls are excluded — they measure the vote, not the campaign.
+  var RACE_WIN=120;
+  var RACE_COLORS={"2019a":"#7d8ca0","2019b":"#9a86b8","2020":"#6fa08d","2021":"#b89a6f","2022":"#c47a8a","2026":"#3aa0ff"};
+  function raceData(metric){
+    var out=[];
+    D.cycles.forEach(function(c){
+      if(!c.election) return;
+      var tEl=ms(c.election), sides=c.sides||{};
+      var g={},order=[];
+      c.polls.forEach(function(p){
+        if(p.d===c.election) return;
+        var x=(ms(p.d)-tEl)/DAY; if(x<-RACE_WIN||x>0) return;
+        var k=p.d+"|"+p.f; if(!g[k]){g[k]={x:x,parts:{},tot:0};order.push(k);}
+        g[k].parts[p.p]=(g[k].parts[p.p]||0)+p.s; g[k].tot+=p.s;
+      });
+      var pts=[];
+      order.forEach(function(k){ var r=g[k];
+        var n=Math.max(1,Math.round(r.tot/120)); if(Math.abs(r.tot-n*120)>4) return;   // partial poll-days fake a collapse
+        var v;
+        if(metric==="bloc"){ var rh=0; Object.keys(r.parts).forEach(function(pn){ if(sides[pn]==="rh") rh+=r.parts[pn]; }); v=rh/n; }
+        else { if(n>1) return;   // lead needs a single clean poll, not an averaged twin pair
+          var vs=Object.keys(r.parts).map(function(pn){return r.parts[pn]}).sort(function(a,b){return b-a});
+          if(vs.length<2) return; v=vs[0]-vs[1]; }
+        pts.push([r.x,v]);
+      });
+      var res=null;
+      if(c.result && Object.keys(c.result).length){
+        if(metric==="bloc"){ res=0; Object.keys(c.result).forEach(function(pn){ if(sides[pn]==="rh") res+=c.result[pn]; }); }
+        else { var rv=Object.keys(c.result).map(function(pn){return c.result[pn]}).sort(function(a,b){return b-a});
+          res=rv.length>1? rv[0]-rv[1] : null; }
+      }
+      out.push({c:c,pts:pts,res:res});
+    });
+    return out;
+  }
+  function raceSmooth(pts,W){   // ±W-day moving average on the days-before axis, break on 21d gaps
+    var xs=[...new Set(pts.map(function(p){return p[0]}))].sort(function(a,b){return a-b});
+    var out=[],prev=null;
+    xs.forEach(function(x){
+      if(prev!=null && x-prev>21) out.push([(prev+x)/2,null]);
+      var s=0,n=0; pts.forEach(function(p){ if(Math.abs(p[0]-x)<=W){s+=p[1];n++;} });
+      out.push([x, n? Math.round(s/n*10)/10 : null]); prev=x;
+    });
+    return out;
+  }
+  function valAt(sm,x0,tol){ var best=null,bd=(tol==null?6:tol)+0.001;
+    sm.forEach(function(p){ if(p[1]==null) return; var d=Math.abs(p[0]-x0); if(d<bd){bd=d;best=p[1];} });
+    return best; }
+
+  function renderRace(){
+    [].forEach.call(document.querySelectorAll("#raceSeg button"),function(x){x.classList.toggle("on",x.dataset.r===state.raceMetric);});
+    var metric=state.raceMetric, bloc=metric==="bloc";
+    var R=raceData(metric);
+    var live=R.find(function(o){return !o.c.result||!Object.keys(o.c.result).length;});
+    var hi=(state.cycle!=="all" && R.some(function(o){return o.c.id===state.cycle}))? state.cycle : (live?live.c.id:"2026");
+    // shared reference distance = the live cycle's current days-out (falls back to T−84)
+    var nowX = live&&live.pts.length? Math.max.apply(null,live.pts.map(function(p){return p[0]})) : -84;
+    var series=[], sms={};
+    R.forEach(function(o){
+      var col=RACE_COLORS[o.c.id]||"#8a99ad", sel=o.c.id===hi;
+      var sm=raceSmooth(o.pts,7); sms[o.c.id]=sm;
+      series.push({name:o.c.label,type:"scatter",symbolSize:sel?4:2.6,silent:true,
+        itemStyle:{color:col,opacity:sel?.38:.16},data:o.pts,z:2,tooltip:{show:false}});
+      series.push({name:o.c.label,type:"line",data:sm,smooth:.3,showSymbol:false,
+        lineStyle:{color:col,width:sel?3.4:1.7,opacity:sel?1:.75},itemStyle:{color:col},
+        z:sel?6:3,emphasis:{focus:"series"}});
+      if(o.res!=null) series.push({name:o.c.label+" result",type:"scatter",symbol:"diamond",symbolSize:sel?12:9,
+        data:[[0,o.res]],itemStyle:{color:col,borderColor:"#e7edf5",borderWidth:1.2},z:7,silent:true,tooltip:{show:false}});
+    });
+    var marks=[{xAxis:nowX,lineStyle:{color:"#ffd479",width:1.3,type:[3,4],opacity:.8},
+      label:{show:true,formatter:(live?live.c.label+" is here":"")+" · T−"+Math.round(-nowX)+"d",
+        color:"#ffd479",fontSize:10.5,position:"insideEndTop"},emphasis:{disabled:true}}];
+    if(bloc) marks.push({yAxis:61,lineStyle:{color:"#93a7c2",width:1.2,type:[6,4],opacity:.65},
+      label:{show:true,formatter:"61 — majority",color:"#9fb3cc",fontSize:10.5,position:"insideStartTop"},
+      emphasis:{disabled:true}});
+    else marks.push({yAxis:0,lineStyle:{color:"#93a7c2",width:1,type:[6,4],opacity:.5},
+      label:{show:true,formatter:"tie",color:"#9fb3cc",fontSize:10.5,position:"insideStartTop"},emphasis:{disabled:true}});
+    series.push({name:"__marks",type:"line",data:[],markLine:{symbol:["none","none"],silent:true,data:marks},z:1});
+    chart.setOption({
+      backgroundColor:"transparent",animation:false,
+      grid:{left:46,right:26,top:30,bottom:44},
+      legend:{show:false},
+      tooltip:{trigger:"axis",axisPointer:{type:"line",lineStyle:{color:"#3a4a60"}},
+        backgroundColor:"rgba(14,20,30,.96)",borderColor:"#2c3a4d",borderWidth:1,
+        textStyle:{color:"#e7edf5",fontSize:12},confine:true,
+        formatter:function(ps){
+          if(!ps||!ps.length) return "";
+          var d=Math.round(ps[0].axisValue);
+          var h='<div style="font-size:11px;color:#8a99ad;margin-bottom:5px">'+(d>=0?"election day":"T−"+(-d)+" days")+'</div>';
+          var seen={};
+          ps.forEach(function(p){ if(p.seriesType!=="line"||p.seriesName.indexOf("__")===0) return;
+            var v=p.data&&p.data[1]; if(v==null||seen[p.seriesName]) return; seen[p.seriesName]=1;
+            h+='<div style="display:flex;justify-content:space-between;gap:14px;line-height:1.55">'+
+               '<span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+p.color+
+               ';margin-right:6px"></span>'+p.seriesName+'</span><b>'+v+'</b></div>'; });
+          return h;
+        }},
+      xAxis:{type:"value",min:-RACE_WIN,max:4,axisLine:{lineStyle:{color:"#2c3a4d"}},
+        axisLabel:{color:"#8a99ad",fontSize:11,formatter:function(v){return v===0?"E-day":(v>0?"":"T−"+(-v));}},
+        splitLine:{show:false}},
+      yAxis:{type:"value",name:bloc?"Right–Haredi seats":"seat lead",scale:true,
+        nameTextStyle:{color:"#5f6e82",fontSize:11,padding:[0,0,0,10]},
+        axisLabel:{color:"#8a99ad",fontSize:11},axisLine:{show:false},
+        splitLine:{lineStyle:{color:"#1a2330"}}},
+      series:series
+    },{notMerge:true});
+    // KPIs + per-cycle closing summary in the side panel
+    var doneR=R.filter(function(o){return o.res!=null;});
+    var swings=doneR.map(function(o){var v=valAt(sms[o.c.id],nowX,10); return v==null?null:o.res-v;})
+                    .filter(function(x){return x!=null;});
+    var held=0,graded=0;
+    if(bloc) doneR.forEach(function(o){ var v=valAt(sms[o.c.id],nowX,10); if(v==null) return;
+      graded++; if((v>=61)===(o.res>=61)) held++; });
+    var liveNow=live? valAt(sms[live.c.id],nowX,10) : null;
+    var daysLeft=live&&live.c.election? Math.max(0,Math.ceil((ms(live.c.election)-Date.now())/DAY)) : null;
+    var mSw=swings.length? swings.reduce(function(a,b){return a+Math.abs(b)},0)/swings.length : null;
+    kpiCards([
+      {v:daysLeft!=null?daysLeft:"—",l:"Days to the 2026 election"},
+      {v:liveNow!=null?liveNow:"—",l:(bloc?"RH bloc":"lead")+" now (2026 trend)"},
+      {v:mSw!=null?"±"+mSw.toFixed(1):"—",l:"Avg move, T−"+Math.round(-nowX)+"d → result"},
+      {v:bloc&&graded? held+"/"+graded : "—",l:"Majority side at T−"+Math.round(-nowX)+"d held"},
+      {v:"final "+RACE_WIN+" days",l:"Window",small:true}
+    ]);
+    $(".events-card .eh b").textContent="How past campaigns closed";
+    $("#evCount").textContent=(bloc?"Right–Haredi bloc":"largest-party lead")+" · at T−"+Math.round(-nowX)+"d vs result";
+    var list=$("#elist"); list.innerHTML="";
+    R.forEach(function(o){
+      var v=valAt(sms[o.c.id],nowX,10), col=RACE_COLORS[o.c.id]||"#8a99ad";
+      var dtxt = o.res!=null
+        ? (v!=null? (o.res-v>0?"+":"")+Math.round((o.res-v)*10)/10+" by e-day" : "—")
+        : "in progress";
+      list.appendChild(elc("div","rank",'<div class="pos" style="color:'+col+'">●</div><div class="nm">'+o.c.label+
+        '<br><small>at T−'+Math.round(-nowX)+'d: <b>'+(v!=null?v:"—")+'</b> · result: <b>'+(o.res!=null?o.res:"pending")+
+        '</b></small></div><div class="mae" style="color:'+(o.res==null?"#ffd479":"#9fb3cc")+'">'+dtxt+'</div>'));
+    });
+    $("#raceHint").textContent="every cycle re-based to days before its election day · dots = polls, lines = ±7-day average · diamonds = results";
+  }
+
+  // ================= preferred PM (leadership head-to-heads & multi-way) =================
+  var CAND_COLORS={"Netanyahu":"#2b7bba","Eisenkot":"#e6550d","Bennett":"#17becf","Lapid":"#37c0e8",
+    "Gantz":"#274b9b","Lieberman":"#86a8cf","Barkat":"#c98a3a","Gallant":"#7e57c2","Levin":"#8b1a1a",
+    "Sa'ar":"#6ec6e0","Huldai":"#e07a9a","Gabbay":"#e23b3b","Livni":"#c2185b","Herzog":"#d6336c",
+    "Kahlon":"#00bfa5","Ashkenazi":"#3f51b5","Ya'alon":"#5c6bc0","Barak":"#ad1457","Ben-Gvir":"#b71c1c",
+    "Golan":"#d94f6a","Shaked":"#3f8f5b","Michaeli":"#e23b3b","Abbas":"#8bc34a","Deri":"#1c1c1c",
+    "Smotrich":"#8b1a1a","Cohen":"#8a9a5b"};
+  var CAND_PALETTE=["#8e7cc3","#76a5af","#c27ba0","#a2c4c9","#d5a6bd","#b6d7a8",
+                    "#ffd966","#a4c2f4","#f9cb9c","#d9d2e9","#b4a7d6","#ea9999"];
+  function candColor(n,i){ return CAND_COLORS[n]||CAND_PALETTE[i%CAND_PALETTE.length]; }
+  function leadCycle(){
+    var c=D.cycles.find(function(x){return x.id===state.cycle});
+    return (c&&c.leadership)? c : null;
+  }
+  function renderLeadership(){
+    // Per-cycle view only: a PM matchup is a question about one campaign's field of candidates.
+    // The All-cycles tab doesn't exist in this mode (renderAll coerces "all" to a concrete cycle),
+    // so this guard only fires for a cycle genuinely lacking PM data.
+    var cyc=leadCycle();
+    if(!cyc){
+      kpiCards([{v:"—",l:"Matchups"},{v:"—",l:"Polls"},{v:"—",l:"Leader"},{v:"—",l:"Gap"},{v:"—",l:"Period"}]);
+      $("#muSeg").innerHTML=""; $("#muHint").textContent="";
+      $(".events-card .eh b").textContent="Preferred PM";
+      $("#evCount").textContent="";
+      $("#elist").innerHTML='<div class="rank"><div class="nm">No preferred-PM polling recorded for this cycle.</div></div>';
+      chart.setOption({title:{text:"No leadership polling for this cycle",left:"center",top:"middle",
+        textStyle:{color:"#9fb3cc",fontSize:18}},xAxis:{show:false},yAxis:{show:false},series:[]},{notMerge:true});
+      return;
+    }
+    var mus=cyc.leadership.filter(function(m){return m.polls.length>=3;});
+    mus.sort(function(a,b){return b.polls[b.polls.length-1].d.localeCompare(a.polls[a.polls.length-1].d);});
+    // Default matchup: the 2026 headline race is Netanyahu–Eisenkot — pin it first (and as the
+    // default) so a fresher poll of some other pairing can't steal either; other cycles fall
+    // back to most-recent activity.
+    var FEATURED="Netanyahu vs. Eisenkot";
+    var fi=mus.findIndex(function(m){return m.label===FEATURED;});
+    if(fi>0){ mus.unshift(mus.splice(fi,1)[0]); }
+    if(!state.matchup || !mus.some(function(m){return m.label===state.matchup;})) state.matchup=mus[0].label;
+    var seg=$("#muSeg"); seg.innerHTML="";
+    mus.forEach(function(m){
+      var b=elc("button",state.matchup===m.label?"on":null,m.label.replace("Netanyahu vs. ","Bibi vs. "));
+      b.onclick=function(){ state.matchup=m.label; renderLeadership(); };
+      seg.appendChild(b);
+    });
+    var mu=mus.find(function(m){return m.label===state.matchup;});
+    var pair=mu.cands.length===2, series=[];
+    mu.cands.forEach(function(cn,ci){
+      var col=candColor(cn,ci);
+      var pts=[];
+      mu.polls.forEach(function(pp){ if(pp.v[ci]!=null) pts.push([ms(pp.d),pp.v[ci],pp.f,pp.pub]); });
+      if(!pts.length) return;
+      series.push({name:cn,type:"scatter",symbolSize:pair?5:4,itemStyle:{color:col,opacity:.4,borderWidth:0},
+        data:pts.map(function(a){return {value:[a[0],a[1]],f:a[2],pub:a[3]}}),z:2});
+      if(pts.length>=3)
+        series.push({name:cn,type:"line",smooth:.35,showSymbol:false,
+          lineStyle:{color:col,width:pair?2.6:2},itemStyle:{color:col},data:trend(pts,21),z:5,
+          emphasis:{focus:"series"}});
+    });
+    var X=mu.polls.filter(function(pp){return pp.x!=null;}).map(function(pp){return [ms(pp.d),pp.x,pp.f]});
+    if(X.length>=6) series.push({name:"Neither / undecided",type:"line",smooth:.35,showSymbol:false,
+      lineStyle:{color:"#5f6e82",width:1.4,type:[4,4]},itemStyle:{color:"#5f6e82"},data:trend(X,21),z:3});
+    var t0=ms(mu.polls[0].d);
+    var marks=[];
+    if(state.focus) marks.push({xAxis:state.focus,lineStyle:{color:"#ffd479",width:1.7,type:"solid",opacity:.95},
+      label:{show:false},emphasis:{disabled:true}});
+    if(cyc.election) marks.push({xAxis:ms(cyc.election),lineStyle:{color:"#5b6b80",width:1.4,type:"solid",opacity:.85},
+      label:{show:true,formatter:cyc.label,color:"#9fb3cc",fontSize:10.5,position:"insideEndTop",fontWeight:600},
+      emphasis:{disabled:true}});
+    if(state.showEvents) cyc.events.forEach(function(e,ei){ if(!e.d||ms(e.d)<t0) return;
+      marks.push({xAxis:ms(e.d),ev_i:ei,lineStyle:{color:"#cdd8e6",width:1,type:[2,3],opacity:.2},label:{show:false},
+        emphasis:{lineStyle:{opacity:.7,color:"#ffd479",width:1.5},label:{show:true,formatter:function(){return e.e},
+          color:"#ffe6a8",backgroundColor:"#1c2230",padding:[4,7],borderRadius:5,fontSize:11}},name:e.e}); });
+    series.push({name:"__events",type:"line",data:[],markLine:{symbol:["none","circle"],symbolSize:7,
+      label:{show:false},data:marks,emphasis:{disabled:false}},z:1,silent:false});
+    // KPIs: leaders by last-5 average of the polls where each candidate was offered
+    function last5(ci){ var vs=[]; mu.polls.forEach(function(pp){ if(pp.v[ci]!=null) vs.push(pp.v[ci]); });
+      vs=vs.slice(-5); return vs.length? vs.reduce(function(a,b){return a+b},0)/vs.length : null; }
+    var avgs=mu.cands.map(function(cn,ci){return {cn:cn,ci:ci,a:last5(ci)};})
+                     .filter(function(o){return o.a!=null;})
+                     .sort(function(a,b){return b.a-a.a;});
+    var top=avgs[0], snd=avgs[1];
+    var last=mu.polls[mu.polls.length-1];
+    var lastBest=null,lastV=null;
+    mu.cands.forEach(function(cn,ci){ if(last.v[ci]!=null&&(lastV==null||last.v[ci]>lastV)){lastV=last.v[ci];lastBest=cn;} });
+    kpiCards([
+      {v:fmt(ms(last.d))+": "+lastBest+" "+lastV,l:"Latest"+(last.f?" · "+last.f:""),small:true},
+      {v:top? top.a.toFixed(1)+"%":"—",l:(top?top.cn:"—")+" · last-5 avg"},
+      {v:snd? snd.a.toFixed(1)+"%":"—",l:(snd?snd.cn:"—")+" · last-5 avg"},
+      {v:(top&&snd)? ((top.a-snd.a>0?"+":"")+(top.a-snd.a).toFixed(1)) : "—",
+       l:"Gap"+(top&&snd? " ("+top.cn+" − "+snd.cn+")":"")},
+      {v:mu.polls.length+" polls",l:fmt(t0)+" – "+fmt(ms(last.d)),small:true}
+    ]);
+    chart.setOption({
+      backgroundColor:"transparent",animation:false,
+      grid:{left:46,right:18,top:30,bottom:44},
+      tooltip:{trigger:"axis",axisPointer:{type:"line",lineStyle:{color:"#3a4a60"}},
+        backgroundColor:"rgba(14,20,30,.96)",borderColor:"#2c3a4d",borderWidth:1,
+        textStyle:{color:"#e7edf5",fontSize:12},confine:true,
+        formatter:function(ps){
+          if(!ps||!ps.length) return "";
+          var rows={},order=[],f=null;
+          ps.forEach(function(p){
+            if(p.seriesName.indexOf("__")===0) return;
+            var v=p.seriesType==="line"? p.data[1] : (p.data&&p.data.value?p.data.value[1]:null);
+            if(v==null) return;
+            if(p.seriesType==="scatter"&&p.data&&p.data.f) f=p.data.f+(p.data.pub?" / "+p.data.pub:"");
+            if(!(p.seriesName in rows)){rows[p.seriesName]={c:p.color,v:v};order.push(p.seriesName);}
+            else if(p.seriesType==="line") rows[p.seriesName]={c:p.color,v:v};
+          });
+          order.sort(function(a,b){return rows[b].v-rows[a].v});
+          var h='<div style="font-size:11px;color:#8a99ad;margin-bottom:5px">'+fmtFull(ps[0].axisValue)+(f?' · '+f:'')+'</div>';
+          order.slice(0,12).forEach(function(n){var r=rows[n];
+            h+='<div style="display:flex;justify-content:space-between;gap:14px;line-height:1.55">'+
+               '<span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+r.c+
+               ';margin-right:6px"></span>'+n+'</span><b>'+r.v+'%</b></div>';});
+          return h;
+        }},
+      xAxis:{type:"time",axisLine:{lineStyle:{color:"#2c3a4d"}},axisLabel:{color:"#8a99ad",fontSize:11},
+        splitLine:{show:false},axisPointer:{label:{show:false}}},
+      yAxis:{type:"value",name:"% preferring",min:0,max:70,
+        nameTextStyle:{color:"#5f6e82",fontSize:11,padding:[0,0,0,-20]},
+        axisLabel:{color:"#8a99ad",fontSize:11,formatter:"{value}%"},axisLine:{show:false},
+        splitLine:{lineStyle:{color:"#1a2330"}}},
+      series:series
+    },{notMerge:true});
+    renderEvents(cyc);
+    $("#muHint").textContent = pair
+      ? '"Who is more suitable to be prime minister?" · head-to-head · dots = polls, lines = ±21-day average'
+      : '"Who is more suitable to be prime minister?" · preference among the listed candidates · dots = polls, lines = ±21-day average';
+  }
+
   // ================= browse polls (wiki-style table) =================
   function cycLabel(id){var c=D.cycles.find(function(x){return x.id===id});return c?c.label:id;}
   function esc(s){return String(s==null?"":s).replace(/[&<>]/g,function(ch){return ch==="&"?"&amp;":ch==="<"?"&lt;":"&gt;";});}
@@ -984,6 +1337,12 @@
     (state.mode==="trends"&&state.lens==="blocs"?"/blocs":"");}catch(e){} }
   function renderAll(){
     document.body.className="mode-"+state.mode;
+    // Preferred PM has no All-cycles tab: entering it from "all" (mode switch or deep link)
+    // lands on the latest cycle that has PM data — the live 2026 race.
+    if(state.mode==="leadership" && state.cycle==="all"){
+      var lc=null; D.cycles.forEach(function(c){ if(c.leadership) lc=c; });
+      if(lc){ state.cycle=lc.id; resetForCycle(); syncHash(); }
+    }
     renderModeTabs(); renderTabs();
     if(state.mode==="browse"){ renderBrowse(); return; }
     // On a chart-TYPE change (trends line/scatter <-> accuracy heatmap), rebuild the chart from
@@ -993,6 +1352,8 @@
     state.lastKind=state.mode;
     chart.resize();   // container was hidden in browse mode; restore size before drawing
     if(state.mode==="accuracy"){ renderAccuracy(); return; }
+    if(state.mode==="race"){ renderRace(); return; }
+    if(state.mode==="leadership"){ renderLeadership(); return; }
     var ac=active(), lac=lensed(ac);
     $(".chips-card .cap span").textContent = state.lens==="blocs" ? "Blocs — click to toggle" : "Parties — click to toggle";
     renderChips(lac); renderPollsters(ac); renderEvents(ac);
@@ -1023,6 +1384,11 @@
   // house-effect down-weight toggle + its explainer
   $("#wtToggle").addEventListener("change",function(){ state.discount=this.checked; renderChart(lensed()); });
   $("#wtWhy").addEventListener("click",function(e){ e.preventDefault(); e.stopPropagation(); $("#wtNote").classList.toggle("show"); });
+  // ±95% sampling-error band toggle
+  $("#moeToggle").addEventListener("change",function(){ state.moe=this.checked; renderChart(lensed()); });
+  // final-stretch metric segmented
+  $("#raceSeg").addEventListener("click",function(e){ var b=e.target.closest("button"); if(!b)return;
+    state.raceMetric=b.dataset.r; renderRace(); });
   // zoom reset (the zoom window itself is captured on the chart's "datazoom" event)
   $("#zoomReset").addEventListener("click",function(){ state.zoom=null; renderChart(lensed()); });
   // touch screens: vertical swipes scroll the page (touch-action pan-y above), horizontal drags
@@ -1054,6 +1420,11 @@
     "Trend lines <b>fade where polling is thin</b> (alpha tracks the ±14-day window's poll count, fully "+
     "solid from 8 polls) and shaded <i>few polls</i> bands mark stretches with fewer than 3 polls in that "+
     "window — a smooth line there is interpolation, not evidence; the tooltip shows the exact count. "+
+    "The shaded <b>±95% band</b> around 2026 trend lines is pure sampling error for the ±14-day weighted mean, "+
+    "computed from published sample sizes (available from Apr 2026 on; polls without a published n are never imputed). "+
+    "It excludes shared/systematic pollster error, so true uncertainty is larger. "+
+    "<b>Final stretch</b> re-bases every cycle onto a days-before-election axis (day-of exit polls excluded); "+
+    "<b>Preferred PM</b> tracks the head-to-head suitability question, which is a different measure than seats. "+
     "The <b>Blocs</b> lens sums each poll into right+haredi vs center-left-arab, following the companion "+
     '<a href="https://yardenmorad2003.github.io/election-dashboard/">elections dashboard</a>’s convention: '+
     "from April 2019 on Yisrael&nbsp;Beiteinu — and in the 2021 cycle Yamina and New&nbsp;Hope — count on the "+
@@ -1069,7 +1440,11 @@
     'by their Wikipedia contributors, licensed <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC&nbsp;BY-SA&nbsp;4.0</a>. '+
     'The live 2026 cycle is compiled via the companion polls-main tracker from '+
     '<a href="https://themadad.com/allpolls/">themadad.com</a> (HaMadad), which aggregates the '+
-    'published Israeli seat-projection polls for the 26th Knesset. '+
+    'published Israeli seat-projection polls for the 26th Knesset; from 29 Jul 2026 it updates from the '+
+    '<a href="https://en.wikipedia.org/wiki/Opinion_polling_for_the_2026_Israeli_legislative_election">2026 opinion-polling page</a>, '+
+    'which also provides the sample sizes, and the preferred-PM series comes from its '+
+    '<a href="https://en.wikipedia.org/wiki/Leadership_opinion_polling_for_the_2026_Israeli_legislative_election">leadership-polling sister page</a> '+
+    '(CC&nbsp;BY-SA&nbsp;4.0). '+
     'Charts: <a href="https://echarts.apache.org/">Apache ECharts</a> (Apache-2.0).';
 
   // boot (deep-links: #2022  ·  #accuracy/2022  ·  #accuracy/2022/elecday)
@@ -1077,6 +1452,8 @@
     if(x==="accuracy"||x==="acc") state.mode="accuracy";
     else if(x==="browse") state.mode="browse";
     else if(x==="trends") state.mode="trends";
+    else if(x==="race"||x==="stretch") state.mode="race";
+    else if(x==="leadership"||x==="pm") state.mode="leadership";
     else if(x==="last"||x==="avg"||x==="elecday"||x==="month") state.metric=x;
     else if(x==="exit"||x==="eday") state.metric="elecday";
     else if(x==="blocs") state.lens="blocs";
