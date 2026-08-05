@@ -18,8 +18,9 @@ CYCLES = [
     {"id": "2020",  "dir": "israel-polls-2020",  "label": "2020",          "knesset": "23rd Knesset", "election": "2020-03-02"},
     {"id": "2021",  "dir": "israel-polls-2021",  "label": "2021",          "knesset": "24th Knesset", "election": "2021-03-23"},
     {"id": "2022",  "dir": "israel-polls-2022",  "label": "2022",          "knesset": "25th Knesset", "election": "2022-11-01"},
-    # In-progress cycle: no election held yet, so no result → trends only (accuracy scoring stays N/A).
-    {"id": "2026",  "dir": "israel-polls-2026",  "label": "2026",          "knesset": "26th Knesset", "election": ""},
+    # In-progress cycle: election scheduled for 27 Oct 2026 (Knesset dissolved 17 Jul 2026); no
+    # result yet → trends only (accuracy gates on `result`, which stays empty until election night).
+    {"id": "2026",  "dir": "israel-polls-2026",  "label": "2026",          "knesset": "26th Knesset", "election": "2026-10-27"},
 ]
 
 # Display-only aliases: pure spelling/abbreviation variants of the SAME party (safe merges).
