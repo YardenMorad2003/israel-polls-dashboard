@@ -19,9 +19,9 @@ Open `index.html` in any browser and it just works.
 | March 2020     | 23rd | 2020-03-02 |  82 |  8 | 19 | 15 | 2019-10-03 → 2020-03-02 |
 | March 2021     | 24th | 2021-03-23 | 172 |  8 | 25 | 33 | 2020-03-12 → 2021-03-23 |
 | November 2022  | 25th | 2022-11-01 | 158 |  7 | 23 | 27 | 2021-04-05 → 2022-11-01 |
-| 2026 *(in progress)* | 26th | 2026-10-27 | 601 | 13 | 20 | 15 | 2022-12-23 → 2026-08-04 |
+| 2026 *(in progress)* | 26th | 2026-10-27 | 655 | 13 | 23 | 19 | 2022-12-23 → 2026-09-09 |
 
-**Totals:** 1,205 polls · 132 campaign events · 28 distinct pollsters · 60 lists · 5 completed
+**Totals:** 1,259 polls · 136 campaign events · 28 distinct pollsters · 62 lists · 5 completed
 elections + the in-progress 2026 cycle. Each cycle's polling begins within days/weeks of the previous
 result, so the combined view is a near-continuous **eight-year** record (2018 → 2026). Every
 *completed* election result sums to exactly **120 seats**; the 2026 cycle has no result yet.
@@ -336,11 +336,14 @@ becomes its own series, so a chart never claims a party polled under a name it d
 |---|---|---|---|
 | Bennett's list → joint list with Lapid | `Bennett` | 2026-04-26 | `Beyachad` |
 | Hendel's Reservists → joint run with Tropper | `Reservists` | 2026-07-07 | `Tropper–Hendel` |
+| Hadash–Ta'al + Balad re-form the Joint List | `Hadash–Ta'al` | 2026-08-19 | `Joint List` |
+| Tropper leaves for Yashar; Reservists merge with the New Economic Party | `Tropper–Hendel` | 2026-09-06 | `Reservists–NEP` |
 
-Both merger dates are also campaign **events**, so the rename is visible on the trend chart rather
-than buried in the data. A consequence worth knowing: because the Reservists stopped polling above
-threshold in Dec 2025 and the merger is later, `Tropper–Hendel` currently has a colour and an event
-but **no seats** — no column is created for a party with no data.
+Every rename date is also a campaign **event**, so the switch is visible on the trend chart rather
+than buried in the data. Technical blocs that keep the lead party's list (RZP–Zehut, Ra'am–Segalovitz,
+Gotliv with Otzma) are *not* renames. Genuinely new lists simply start on their launch date
+(`Amcha Yisrael`, Ofer Winter's party, 2026-08-25); a list that never polls above threshold gets no
+column at all (Erdan/Edelstein's *Unity*, Aug–Sep 2026).
 
 ### `window.POLLDATA` schema
 
@@ -432,13 +435,21 @@ overwrites `data.js`. Nothing else needs rebuilding — reload `index.html`.
 The five completed cycles are frozen. **Since 29 Jul 2026 the maintained refresh source is
 Wikipedia's [2026 opinion-polling page](https://en.wikipedia.org/wiki/Opinion_polling_for_the_2026_Israeli_legislative_election)**
 (raw wikitext via `&action=raw` — themadad.com now geo-blocks non-Israeli IPs with a hard
-Cloudflare 403, even in a real browser). That page also supplies the per-poll **sample sizes**
+Cloudflare 403, even in a real browser). The refresh is scripted in `israel-polls-2026/`:
+save the raw wikitext under `wiki_snapshots/`, run `append_from_wiki.py <snapshot> --after <last
+poll date>` (it parses the wikitables on a real column grid — colspan/rowspan, several tables,
+mid-table header changes — maps Wikipedia's labels through the tables at the top of the script,
+validates every row, appends, bumps `period`, adds events; `--dry-run` first), then
+`python build_data.py` here. Anything unmapped (a new firm, a new column) stops the run with a
+message naming the table to extend. That page also supplies the per-poll **sample sizes**
 (the wide CSV's `Sample` column) and, via its
 [leadership-polling sister page](https://en.wikipedia.org/wiki/Leadership_opinion_polling_for_the_2026_Israeli_legislative_election),
 the **preferred-PM series** (`israel-polls-2026/leadership_polls.csv`). Translation conventions into
 this dataset (documented in `israel-polls-2026/README.md`): dates = fieldwork-end; Kantar → Dudi
-Hasid, Midgam/Ch12 → Mano Geva, "Zionist Home – The Reservists" → Tropper–Hendel, revived Blue &
-White (Gantz) → National Unity; Channel 13's 2026 polls stay **HaMadad**. The notes below describe
+Hasid, Midgam R&C/Ch12 → Mano Geva, Direct Polls/i24 → Tzuriel Sharon, "Zionist Home" → Tropper–Hendel,
+revived Blue & White (Gantz) → National Unity; Channel 13's 2026 polls stay **HaMadad**. Scenario
+polls (the second row of a rowspan pair) are skipped; a few rows are kept although Wikipedia's
+transcription does not sum to 120 (listed in that README). The notes below describe
 the original themadad route, kept for the record should access return:
 [themadad.com/allpolls](https://themadad.com/allpolls/), which publishes every 26th-Knesset seat
 projection in one table. Four things about that source are worth knowing before touching it:

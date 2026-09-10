@@ -75,6 +75,12 @@ COLORS = {
     # column at that point. Same series, new name from the merger on — kept in the olive family
     # so the successor line reads as continuous with Reservists.
     "Tropper–Hendel": "#7a8f3c",
+    # 2026-09-06: Tropper left for Yashar and Hendel's Reservists merged with Zelekha's New
+    # Economic Party — third name on the same olive line.
+    "Reservists–NEP": "#5f7a2a",
+    # Ofer Winter's list, formed 2026-08-25. "Joint List" (Hadash–Ta'al + Balad re-formed
+    # 2026-08-19) reuses the 2019–2021 colour above.
+    "Amcha Yisrael": "#c9a227",
 }
 PALETTE = ["#8e7cc3", "#76a5af", "#c27ba0", "#a2c4c9", "#d5a6bd", "#b6d7a8",
            "#ffd966", "#a4c2f4", "#f9cb9c", "#d9d2e9", "#b4a7d6", "#ea9999"]
@@ -106,7 +112,11 @@ RH_SIDE = {
               "Otzma Yehudit"},
     "2022":  {"Likud", "RZP-OY", "Shas", "UTJ", "Religious Zionist", "Otzma Yehudit",
               "Zionist Spirit/Yamina", "JH/ Yamina", "Jewish Home", "Zionist Spirit"},
-    "2026":  {"Likud", "Shas", "UTJ", "Religious Zionist", "Otzma Yehudit"},
+    # Amcha Yisrael (Ofer Winter) is tallied inside the Netanyahu bloc by the Israeli outlets
+    # themselves (Channel 13 and Kan 11 both called their 9 Sep 2026 polls a bloc tie only
+    # with Winter's seats on the right). Reservists–NEP is left on the other side, like its
+    # Reservists / Tropper–Hendel predecessors.
+    "2026":  {"Likud", "Shas", "UTJ", "Religious Zionist", "Otzma Yehudit", "Amcha Yisrael"},
 }
 
 
