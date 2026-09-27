@@ -19,9 +19,9 @@ Open `index.html` in any browser and it just works.
 | March 2020     | 23rd | 2020-03-02 |  82 |  8 | 19 | 15 | 2019-10-03 → 2020-03-02 |
 | March 2021     | 24th | 2021-03-23 | 172 |  8 | 25 | 33 | 2020-03-12 → 2021-03-23 |
 | November 2022  | 25th | 2022-11-01 | 158 |  7 | 23 | 27 | 2021-04-05 → 2022-11-01 |
-| 2026 *(in progress)* | 26th | 2026-10-27 | 655 | 13 | 23 | 19 | 2022-12-23 → 2026-09-09 |
+| 2026 *(in progress)* | 26th | 2026-10-27 | 675 | 13 | 23 | 20 | 2022-12-23 → 2026-09-24 |
 
-**Totals:** 1,259 polls · 136 campaign events · 28 distinct pollsters · 62 lists · 5 completed
+**Totals:** 1,279 polls · 137 campaign events · 28 distinct pollsters · 62 lists · 5 completed
 elections + the in-progress 2026 cycle. Each cycle's polling begins within days/weeks of the previous
 result, so the combined view is a near-continuous **eight-year** record (2018 → 2026). Every
 *completed* election result sums to exactly **120 seats**; the 2026 cycle has no result yet.
@@ -142,7 +142,10 @@ plus a dashed grey *neither/undecided* line where published. Rows in a multi-can
 only offered two names are folded into that pair's series (that is how April 2019's single wide
 table stores its Bibi–Gantz head-to-heads). PM preference and seat projections diverge — the 2026
 seat race is tied while some head-to-heads are not — and that tension is itself informative.
-Pollster names keep each source table's firm labels (Midgam, Kantar…), the raw record. Campaign
+Pollster names keep each source table's firm labels (Midgam, Kantar…), the raw record — except that
+Wikipedia's Sep 2026 joint-fieldwork abbreviations (`LRI+P4A`, `SF+ND`, `SF+DP`, `CF+MP+SN`,
+`MP+TM+SN+A`, `MM+SN`) are mapped back to the labels the series already used (Lazar, Filber, Direct
+Polls, Camil Fuchs, Midgam Project, Maagar Mochot). Campaign
 events overlay as in Trends, with the same bidirectional panel linking. The view is **per
 campaign** — each cycle polled its own field of candidates, so this mode has **no All-cycles tab**;
 entering it from *All cycles* lands on the latest campaign with PM data (2026), which defaults to
@@ -447,7 +450,11 @@ message naming the table to extend. That page also supplies the per-poll **sampl
 the **preferred-PM series** (`israel-polls-2026/leadership_polls.csv`). Translation conventions into
 this dataset (documented in `israel-polls-2026/README.md`): dates = fieldwork-end; Kantar → Dudi
 Hasid, Midgam R&C/Ch12 → Mano Geva, Direct Polls/i24 → Tzuriel Sharon, "Zionist Home" → Tropper–Hendel,
-revived Blue & White (Gantz) → National Unity; Channel 13's 2026 polls stay **HaMadad**. Scenario
+revived Blue & White (Gantz) → National Unity; Channel 13's 2026 polls stay **HaMadad** (Wikipedia's
+legend now credits them to Midgam Project + The Madad + Stat-Net + Askaria); the Sep 2026 firm
+abbreviations `SF+ND` → Shlomo Filber and `LRI+P4A` → Menachem Lazar. Only media-published polls
+are taken: an unpublished poll filed with the Elections Committee with no publisher (S.M.L.T. /
+D.R.I. Consulting, 7 Sep 2026) is skipped. Scenario
 polls (the second row of a rowspan pair) are skipped; a few rows are kept although Wikipedia's
 transcription does not sum to 120 (listed in that README). The notes below describe
 the original themadad route, kept for the record should access return:
