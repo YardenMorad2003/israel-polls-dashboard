@@ -19,9 +19,9 @@ Open `index.html` in any browser and it just works.
 | March 2020     | 23rd | 2020-03-02 |  82 |  8 | 19 | 15 | 2019-10-03 → 2020-03-02 |
 | March 2021     | 24th | 2021-03-23 | 172 |  8 | 25 | 33 | 2020-03-12 → 2021-03-23 |
 | November 2022  | 25th | 2022-11-01 | 158 |  7 | 23 | 27 | 2021-04-05 → 2022-11-01 |
-| 2026 *(in progress)* | 26th | 2026-10-27 | 675 | 13 | 23 | 20 | 2022-12-23 → 2026-09-24 |
+| 2026 *(in progress)* | 26th | 2026-10-27 | 695 | 13 | 23 | 21 | 2022-12-23 → 2026-10-14 |
 
-**Totals:** 1,279 polls · 137 campaign events · 28 distinct pollsters · 62 lists · 5 completed
+**Totals:** 1,299 polls · 138 campaign events · 28 distinct pollsters · 62 lists · 5 completed
 elections + the in-progress 2026 cycle. Each cycle's polling begins within days/weeks of the previous
 result, so the combined view is a near-continuous **eight-year** record (2018 → 2026). Every
 *completed* election result sums to exactly **120 seats**; the 2026 cycle has no result yet.
