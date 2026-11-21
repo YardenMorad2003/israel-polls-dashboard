@@ -18,8 +18,8 @@ CYCLES = [
     {"id": "2020",  "dir": "israel-polls-2020",  "label": "2020",          "knesset": "23rd Knesset", "election": "2020-03-02"},
     {"id": "2021",  "dir": "israel-polls-2021",  "label": "2021",          "knesset": "24th Knesset", "election": "2021-03-23"},
     {"id": "2022",  "dir": "israel-polls-2022",  "label": "2022",          "knesset": "25th Knesset", "election": "2022-11-01"},
-    # In-progress cycle: election scheduled for 27 Oct 2026 (Knesset dissolved 17 Jul 2026); no
-    # result yet → trends only (accuracy gates on `result`, which stays empty until election night).
+    # Held 27 Oct 2026 (Knesset dissolved 17 Jul 2026). Result row + the five exit polls were added
+    # on 21 Nov 2026, which switches accuracy scoring on for this cycle.
     {"id": "2026",  "dir": "israel-polls-2026",  "label": "2026",          "knesset": "26th Knesset", "election": "2026-10-27"},
 ]
 
@@ -142,8 +142,11 @@ for c in CYCLES:
     lf["party"] = lf["party"].map(canon)
     lf["pollster"] = lf["pollster"].map(canon_pollster)   # merge same-firm/outlet variants (analysis only)
     ed = lf["date_iso"] == c["election"]                  # attribute each channel's exit poll to its firm
-    lf.loc[ed, "pollster"] = [EXIT_FIRM.get(pub or f.replace(" exit poll", ""), f)
-                              for f, pub in zip(lf.loc[ed, "pollster"], lf.loc[ed, "publisher"])]
+    # 2026: this cycle names pollsters by their head (Mano Geva, Dudi Hasid, HaMadad...), and Channel
+    # 13's 2026 pollster is not Camil Fuchs — so its exit polls keep the campaign-poll names as they are.
+    if c["id"] != "2026":
+        lf.loc[ed, "pollster"] = [EXIT_FIRM.get(pub or f.replace(" exit poll", ""), f)
+                                  for f, pub in zip(lf.loc[ed, "pollster"], lf.loc[ed, "publisher"])]
     lf["seats_n"] = pd.to_numeric(lf["seats"], errors="coerce")
 
     is_base = lf["pollster"].str.contains(BASELINE)

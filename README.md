@@ -1,8 +1,7 @@
 # The Israeli Polling Saga · 2019–2026
 
-An interactive, **fully-offline** dashboard over opinion polling for the **five completed Israeli
-general elections of 2019–2022** (21st–25th Knesset) plus the **live run-up to the 26th Knesset
-(2026)**. It chains every cycle's polls into one continuous 2018 → 2026 timeline, scores how
+An interactive, **fully-offline** dashboard over opinion polling for the **six Israeli general elections of
+2019–2026** (21st–26th Knesset). It chains every cycle's polls into one continuous 2018 → 2026 timeline, scores how
 accurately each pollster called each *completed* election, and reproduces the Wikipedia poll tables
 — all in a **single self-contained HTML file** with no server, no build step, and no internet
 connection required. The 2026 cycle is polling-only for now: accuracy scoring unlocks once that
@@ -19,10 +18,10 @@ Open `index.html` in any browser and it just works.
 | March 2020     | 23rd | 2020-03-02 |  82 |  8 | 19 | 15 | 2019-10-03 → 2020-03-02 |
 | March 2021     | 24th | 2021-03-23 | 172 |  8 | 25 | 33 | 2020-03-12 → 2021-03-23 |
 | November 2022  | 25th | 2022-11-01 | 158 |  7 | 23 | 27 | 2021-04-05 → 2022-11-01 |
-| 2026 *(in progress)* | 26th | 2026-10-27 | 695 | 13 | 23 | 21 | 2022-12-23 → 2026-10-14 |
+| October 2026   | 26th | 2026-10-27 | 730 | 13 | 23 | 22 | 2022-12-23 → 2026-10-27 |
 
-**Totals:** 1,299 polls · 138 campaign events · 28 distinct pollsters · 62 lists · 5 completed
-elections + the in-progress 2026 cycle. Each cycle's polling begins within days/weeks of the previous
+**Totals:** 1,334 polls · 139 campaign events · 28 distinct pollsters · 62 lists · 6 completed
+elections. Each cycle's polling begins within days/weeks of the previous
 result, so the combined view is a near-continuous **eight-year** record (2018 → 2026). Every
 *completed* election result sums to exactly **120 seats**; the 2026 cycle has no result yet.
 
@@ -119,7 +118,7 @@ filters; lines are drawn crisply (no shadow) for legibility at a glance.
 ## Mode 2 · Final stretch
 
 Every cycle's polls re-based onto a shared **days-before-election** axis (final 120 days), so the
-live 2026 run-up can be read against how the five completed campaigns actually closed. Dots are
+2026 campaign can be read against how the five earlier campaigns closed. Dots are
 individual polls, lines a ±7-day average, diamonds the results at E-day; day-of exit polls are
 excluded (they measure the vote, not the campaign). A gold dashed line marks where the live cycle
 currently stands (e.g. *T−84d*), and the side panel + KPIs answer the two standing questions: how
@@ -260,8 +259,8 @@ The URL **hash** encodes mode + cycle (+ metric), and updates as you click:
 
 Cycle ids: `2019a`, `2019b`, `2020`, `2021`, `2022`, `2026`, `all`. Metric tokens: `avg`, `month`,
 `last`, `elecday` (`exit`/`eday` also map to election-day). The Lists scope is a UI toggle and
-defaults to *Seated*. `#accuracy/2026` is a no-op — that election has no result to score against, so
-the accuracy tab shows *pending* for it.
+defaults to *Seated*. `#accuracy/2026` works like the other cycles since the 27 Oct 2026 result and the five exit polls
+were added (21 Nov 2026).
 
 ---
 
